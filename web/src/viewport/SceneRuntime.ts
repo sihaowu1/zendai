@@ -9,7 +9,10 @@ import { validateSceneModule, type SceneModule } from '@motionforge/shared';
  */
 export class SceneRuntime {
   onError: (err: Error) => void = () => {};
+  /** Fired when a raycast click hits any object in the scene (not empty space). */
+  onObjectClick: (point: { x: number; y: number }) => void = () => {};
 
+  private canvas: HTMLCanvasElement;
   private renderer: THREE.WebGLRenderer;
   private camera: THREE.PerspectiveCamera;
   private controls: OrbitControls;
@@ -19,8 +22,13 @@ export class SceneRuntime {
   private raf = 0;
   private startMs = performance.now();
   private frameErrorReported = false;
+  /** When set, `updateScene` is driven by this instead of the free-running wall clock (see `setTime`). */
+  private controlledTime: number | null = null;
+  private raycaster = new THREE.Raycaster();
+  private pointerDownPos: { x: number; y: number } | null = null;
 
   constructor(canvas: HTMLCanvasElement) {
+    this.canvas = canvas;
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
     this.renderer.setPixelRatio(window.devicePixelRatio);
     this.camera = new THREE.PerspectiveCamera(45, 1, 0.1, 500);
@@ -30,6 +38,8 @@ export class SceneRuntime {
     this.controls.target.set(0, 0.8, 0);
     this.loop = this.loop.bind(this);
     this.raf = requestAnimationFrame(this.loop);
+    canvas.addEventListener('pointerdown', this.handlePointerDown);
+    canvas.addEventListener('pointerup', this.handlePointerUp);
   }
 
   async setCode(code: string): Promise<void> {
@@ -38,6 +48,15 @@ export class SceneRuntime {
     this.module = await loadSceneModule(code);
     this.frameErrorReported = false;
     this.rebuild();
+  }
+
+  /**
+   * Hands the scene's `time` to the caller (e.g. a timeline playhead)
+   * instead of the internal wall clock — a fixed `time` freezes the scene on
+   * that exact frame, since `updateScene` must already be pure in `time`.
+   */
+  setTime(time: number): void {
+    this.controlledTime = time;
   }
 
   resize(width: number, height: number): void {
@@ -49,9 +68,39 @@ export class SceneRuntime {
 
   dispose(): void {
     cancelAnimationFrame(this.raf);
+    this.canvas.removeEventListener('pointerdown', this.handlePointerDown);
+    this.canvas.removeEventListener('pointerup', this.handlePointerUp);
     this.controls.dispose();
     disposeScene(this.scene);
     this.renderer.dispose();
+  }
+
+  // Tracked as pointerdown/up (not a native `click`) so an orbit-drag that
+  // happens to start and end over the canvas isn't mistaken for a click.
+  private handlePointerDown = (event: PointerEvent): void => {
+    this.pointerDownPos = { x: event.clientX, y: event.clientY };
+  };
+
+  private handlePointerUp = (event: PointerEvent): void => {
+    const down = this.pointerDownPos;
+    this.pointerDownPos = null;
+    if (!down) return;
+    if (Math.hypot(event.clientX - down.x, event.clientY - down.y) > 4) return;
+    this.handleCanvasClick(event.clientX, event.clientY);
+  };
+
+  private handleCanvasClick(clientX: number, clientY: number): void {
+    const rect = this.canvas.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
+    const ndc = new THREE.Vector2(
+      ((clientX - rect.left) / rect.width) * 2 - 1,
+      -((clientY - rect.top) / rect.height) * 2 + 1,
+    );
+    this.raycaster.setFromCamera(ndc, this.camera);
+    const hits = this.raycaster.intersectObjects(this.scene.children, true);
+    if (hits.length > 0) {
+      this.onObjectClick({ x: clientX, y: clientY });
+    }
   }
 
   private rebuild(): void {
@@ -82,7 +131,7 @@ export class SceneRuntime {
           scene: this.scene,
           objects: this.objects,
           params: module.PARAMS,
-          time: (now - this.startMs) / 1000,
+          time: this.controlledTime !== null ? this.controlledTime : (now - this.startMs) / 1000,
         });
       } catch (err) {
         if (!this.frameErrorReported) {

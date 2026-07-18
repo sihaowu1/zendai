@@ -22,7 +22,7 @@ export default function FinalCTA() {
 
           <div className="mt-10">
             <a
-              href="/app"
+              href="/model"
               className="group inline-flex items-center gap-2 rounded-md bg-white px-6 py-3.5 text-sm font-medium text-inkwell transition-all duration-300 hover:bg-royal-blue hover:text-white hover:rounded-xl"
             >
               Get Started

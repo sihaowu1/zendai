@@ -58,7 +58,7 @@ export default function Hero() {
 
             <div className="mt-9 flex flex-wrap items-center gap-3">
               <a
-                href="/app"
+                href="/model"
                 className="inline-flex items-center gap-2 rounded-md bg-royal-blue px-5 py-3 text-sm font-medium text-white transition-all duration-300 hover:bg-blue-500 hover:rounded-xl"
               >
                 Get Started

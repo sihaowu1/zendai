@@ -52,13 +52,13 @@ export default function Nav() {
 
           <div className="flex items-center gap-3">
             <a
-              href="/app"
+              href="/model"
               className="hidden sm:inline-flex font-mono-label text-slate-400 transition-colors hover:text-white"
             >
               Sign in
             </a>
             <a
-              href="/app"
+              href="/model"
               className="inline-flex items-center justify-center rounded-md bg-royal-blue px-4 py-2 text-sm font-medium text-white transition-all duration-300 hover:bg-blue-500 hover:rounded-xl"
             >
               Get Started
