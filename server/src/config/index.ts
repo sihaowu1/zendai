@@ -14,7 +14,6 @@ export interface AppConfig {
     mgmtClientId: string;
     mgmtClientSecret: string;
   };
-  auth0: { domain: string; audience: string };
   mongo: { uri: string };
   blender: {
     enabled: boolean;
