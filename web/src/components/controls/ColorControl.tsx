@@ -9,17 +9,18 @@ interface Props {
 export function ColorControl({ param, onChange }: Props) {
   const value = String(param.value);
   return (
-    <label className="flex flex-col gap-1">
-      <span className="flex justify-between text-[13px] text-text-dim">
-        {param.label}
-        <span className="text-text tabular-nums">{value}</span>
+    // Swatch and hex share one row, the way an inspector lists a fill.
+    <label className="flex items-center justify-between gap-2 text-[13px] text-text-dim">
+      {param.label}
+      <span className="flex items-center gap-1.5 rounded-md border border-border bg-bg py-0.5 pl-0.5 pr-2">
+        <input
+          type="color"
+          className="h-5 w-5 cursor-pointer rounded-sm border-none bg-transparent p-0"
+          value={normalizeHex(value)}
+          onChange={(event) => onChange(param.name, event.target.value)}
+        />
+        <span className="text-[12px] uppercase text-text tabular-nums">{value.replace('#', '')}</span>
       </span>
-      <input
-        type="color"
-        className="h-7 w-full cursor-pointer rounded-md border border-border bg-bg p-0.5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
-        value={normalizeHex(value)}
-        onChange={(event) => onChange(param.name, event.target.value)}
-      />
     </label>
   );
 }

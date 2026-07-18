@@ -1,24 +1,51 @@
 @import 'tailwindcss';
 
 @theme {
-  --color-bg: #0a0a0b;
-  --color-bg-panel: #131315;
-  --color-bg-raised: #19191c;
-  --color-bg-hover: #212124;
-  --color-border: #262629;
-  --color-border-strong: #343438;
-  --color-text: #f2f0ec;
-  --color-text-dim: #9d9a96;
-  --color-text-faint: #67655f;
-  --color-accent: #5b8cf8;
-  --color-accent-hover: #6f9bf9;
-  --color-accent-text: #061021;
-  --color-accent-2: #ffb84d;
-  --color-error: #ff6470;
-  --color-ok: #4ade80;
-  --color-warn: #ffb84d;
-  --font-sans: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', system-ui, sans-serif;
-  --font-mono: 'SF Mono', ui-monospace, 'JetBrains Mono', Menlo, Consolas, monospace;
+  /* Neutral graphite ground — no hue cast of its own, so the blue accent is the
+     only hue in the chrome and colour always means something.
+     The steps between these are deliberately small: panels are told apart by
+     their hairline border, not by a blocky jump in fill. */
+  --color-bg: #0d0d0f;
+  --color-bg-panel: #151517;
+  --color-bg-raised: #1a1a1d;
+  --color-bg-hover: #222226;
+
+  /* Translucent rather than a fixed grey, so a border reads as the same
+     hairline whatever surface it lands on. */
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-border-strong: rgba(255, 255, 255, 0.14);
+
+  /* Selection is a tint, never an outline — see ui/Panel.tsx. */
+  --color-selected: rgba(255, 255, 255, 0.05);
+
+  /* Text tiers, all pushed above 4.5:1 on bg-panel. */
+  --color-text: #f4f4f5;
+  --color-text-dim: #a8a8b0;
+  --color-text-faint: #74757d;
+
+  /* Blue carries the primary action and every "this is on" state. It is bright
+     enough that white text on it is muddy — anything filled with
+     --color-accent must take --color-accent-text, which is near-black on
+     purpose. */
+  --color-accent: #4da3ff;
+  --color-accent-hover: #74b8ff;
+  --color-accent-text: #0a1220;
+
+  /* Runtime identity, unchanged in meaning: violet = live Three.js scene,
+     orange = Blender. Violet is a surface colour (timeline clips, selection),
+     never the primary action — that belongs to the blue above. */
+  --color-scene: #7c5cfa;
+  --color-accent-2: #ff8a3d;
+
+  --color-error: #ff5f6d;
+  --color-ok: #34e58b;
+  --color-warn: #ffc247;
+
+  /* Inter and JetBrains Mono are loaded in index.html and drive the landing
+     page's type. They lead here too — putting -apple-system first meant the
+     studio silently rendered in SF while the landing rendered in Inter. */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', ui-monospace, Menlo, Consolas, monospace;
 }
 
 * {
@@ -33,75 +60,17 @@ body,
   background: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-sans);
-  font-size: 14.5px;
+  font-size: 15.5px;
+  /* Inter sets loose by default at UI sizes; the landing's headings pull to
+     -0.04em. Match that curve: tight here, tighter on display type. */
+  letter-spacing: -0.011em;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-@layer components {
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.4rem;
-    border-radius: 0.5rem;
-    padding: 0.5rem 0.9rem;
-    font-size: 13px;
-    font-weight: 500;
-    border: 1px solid transparent;
-    cursor: pointer;
-    transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease, opacity 0.12s ease;
-    white-space: nowrap;
-  }
-  .btn:disabled {
-    cursor: not-allowed;
-    opacity: 0.4;
-  }
-  .btn:focus-visible {
-    outline: 2px solid var(--color-accent);
-    outline-offset: 1px;
-  }
-  .btn-primary {
-    background: var(--color-accent);
-    border-color: var(--color-accent);
-    color: white;
-  }
-  .btn-primary:not(:disabled):hover {
-    background: var(--color-accent-hover);
-    border-color: var(--color-accent-hover);
-  }
-  .btn-secondary {
-    background: var(--color-bg-raised);
-    border-color: var(--color-border);
-    color: var(--color-text);
-  }
-  .btn-secondary:not(:disabled):hover {
-    background: var(--color-bg-hover);
-    border-color: var(--color-border-strong);
-  }
-  .btn-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 0.4rem;
-    border: 1px solid transparent;
-    background: transparent;
-    color: var(--color-text-dim);
-    cursor: pointer;
-    transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
-  }
-  .btn-icon:hover {
-    background: var(--color-bg-hover);
-    color: var(--color-text);
-  }
-  .btn-icon:focus-visible {
-    outline: 2px solid var(--color-accent);
-    outline-offset: 1px;
-  }
-  .btn-icon[aria-pressed='true'],
-  .btn-icon.active {
-    background: var(--color-accent);
-    border-color: var(--color-accent);
-    color: white;
-  }
+h1,
+h2,
+h3 {
+  letter-spacing: -0.03em;
+  line-height: 1.12;
 }
-

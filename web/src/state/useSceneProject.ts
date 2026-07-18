@@ -103,7 +103,6 @@ export function useSceneProject() {
   const [busy, setBusy] = useState<string | null>(null);
   const [status, setStatus] = useState<Status | null>(null);
   const [mp4Job, setMp4Job] = useState<Mp4JobState | null>(null);
-  const [blenderStatus, setBlenderStatus] = useState<api.BlenderStatus | null>(null);
   const pollRef = useRef<number | null>(null);
 
   // The active model backs the editor/viewport. It always resolves to a real
@@ -155,10 +154,6 @@ export function useSceneProject() {
   const previewCode = previewScenes[0]?.code ?? previewModel?.code;
   const previewTime = activeClip ? playback.currentTime - activeClip.start : playback.currentTime;
   const previewModelName = previewModel?.name ?? activeModel.name;
-
-  useEffect(() => {
-    api.getBlenderStatus().then(setBlenderStatus).catch(() => setBlenderStatus(null));
-  }, []);
 
   useEffect(
     () => () => {
@@ -572,7 +567,6 @@ export function useSceneProject() {
     busy,
     status,
     mp4Job,
-    blenderStatus,
     models,
     activeModelId,
     selectedModelIds,

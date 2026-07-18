@@ -50,14 +50,14 @@ export function VideoPreview({
         key={job.url}
         src={job.url}
         controls
-        className="block h-full max-h-full w-full rounded bg-black"
+        className="block h-full max-h-full w-full rounded-lg bg-black"
         aria-label="Rendered video preview"
       />
     );
   }
 
   const badgeClass =
-    'absolute left-2 bottom-2 max-w-[calc(100%-16px)] rounded-md border border-border bg-[rgba(10,10,11,0.85)] px-2.5 py-1 text-[12px] text-text-dim';
+    'absolute left-2 bottom-2 max-w-[calc(100%-16px)] rounded-md border border-border bg-[rgba(10,10,11,0.85)] px-2.5 py-1 text-[13px] text-text-dim';
 
   const hasScenes = Boolean(scenes?.length) || Boolean(code);
   if (!hasScenes) {

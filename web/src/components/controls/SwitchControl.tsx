@@ -13,7 +13,7 @@ export function SwitchControl({ param, onChange }: Props) {
       <span className="text-[13px] text-text-dim">{param.label}</span>
       <input
         type="checkbox"
-        className="h-[18px] w-[34px] cursor-pointer accent-accent"
+        className="h-4 w-4 cursor-pointer accent-accent"
         checked={checked}
         onChange={(event) => onChange(param.name, event.target.checked)}
       />

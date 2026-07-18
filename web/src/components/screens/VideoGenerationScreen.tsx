@@ -9,6 +9,7 @@ import type { TimelineClip } from '../timeline/timelineMath';
 import type { TimelinePlayback } from '../timeline/useTimelinePlayback';
 import type { Mp4JobState, SceneModel } from '../../state/useSceneProject';
 import { VideoPreview } from '../VideoPreview';
+import { PANEL_HEADER } from '../ui/Panel';
 
 export interface VideoGenerationScreenProps {
   /** Models generated on the Model Generation screen (from `useSceneProject.models`). */
@@ -166,7 +167,7 @@ export function VideoGenerationScreen({
             />
             {isDropTarget && (
               <div
-                className="pointer-events-none absolute inset-0 flex items-center justify-center bg-[rgba(10,10,11,0.65)] text-[13px] font-semibold text-text"
+                className="pointer-events-none absolute inset-0 flex items-center justify-center bg-[rgba(10,10,11,0.65)] text-[14px] font-semibold text-text"
                 aria-hidden="true"
               >
                 Drop to place at {formatDropSecond(playback.currentTime)}s
@@ -219,7 +220,7 @@ function MaterialsList({ models }: { models: SceneModel[] }) {
       {models.map((m) => (
         <li
           key={m.id}
-          className="flex cursor-grab items-center gap-2 rounded border border-border bg-bg-raised px-2 py-1.5"
+          className="flex cursor-grab items-center gap-2 rounded-lg border border-border bg-bg-raised px-3 py-2"
           draggable
           onDragStart={(event) => {
             event.dataTransfer.setData(MODEL_DRAG_TYPE, m.id);
@@ -227,7 +228,7 @@ function MaterialsList({ models }: { models: SceneModel[] }) {
           }}
         >
           <div className="h-8 w-8 flex-shrink-0 rounded-sm border border-border bg-bg" aria-hidden="true" />
-          <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[13px] text-text" title={m.name}>
+          <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[14px] text-text" title={m.name}>
             {m.name}
             {m.childIds?.length ? (
               <span className="ml-1 font-normal text-text-dim">· merge</span>
@@ -250,19 +251,23 @@ function Pane({
 }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-bg-panel" aria-label={title}>
-      <header className="border-b border-border bg-bg-raised px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-text-dim">
+      {/* Same muted mono title the Model and Export screens use, so a pane
+          header reads identically wherever you meet one. Header and body share
+          one horizontal inset — at px-4 over p-3 every pane's content sat 4px
+          left of its own title. */}
+      <header className={`flex items-center border-b border-border px-4 py-3 ${PANEL_HEADER}`}>
         {title}
       </header>
-      <div className={`min-h-0 flex-1 overflow-auto p-3 ${bodyClassName ?? ''}`}>{children}</div>
+      <div className={`min-h-0 flex-1 overflow-auto p-4 ${bodyClassName ?? ''}`}>{children}</div>
     </div>
   );
 }
 
 function Placeholder({ label, hint }: { label: string; hint: string }) {
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-1.5 rounded border border-dashed border-border p-4 text-center text-text-dim">
-      <div className="text-[14px] font-semibold text-text">{label}</div>
-      <div className="text-[13px]">{hint}</div>
+    <div className="flex h-full flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-border p-4 text-center text-text-dim">
+      <div className="text-[15px] font-semibold text-text">{label}</div>
+      <div className="text-[14px]">{hint}</div>
     </div>
   );
 }

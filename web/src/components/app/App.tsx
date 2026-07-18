@@ -9,6 +9,7 @@ import { ChatPanel } from '../ChatPanel';
 import { useAuth } from '../../auth/useAuth';
 import { MarketplaceScreen } from '../screens/MarketplaceScreen';
 import { MarketplaceDetailScreen } from '../screens/MarketplaceDetailScreen';
+import { Button } from '../ui/Button';
 import { useGitHubStartupSync } from '../useGitHubStartupSync';
 
 /**
@@ -58,6 +59,7 @@ export function App() {
                     status={project.status}
                     onGenerate={project.generate}
                     onModify={project.modify}
+                    showTitle={false}
                   />
                 }
               />
@@ -105,7 +107,8 @@ function TopNav() {
   return (
     <div className="flex flex-shrink-0 items-center gap-5 border-b border-border bg-bg-panel px-4 py-2.5">
       <Link to="/" className="flex items-center gap-2 text-text no-underline hover:opacity-80">
-        <Logo size={120} />
+        <Logo size={26} />
+        <span className="text-[20px] font-semibold tracking-wide">Zendai</span>
       </Link>
       <nav className="flex gap-1" aria-label="Screens">
         <NavLink to="/model" className={navLinkClassName}>
@@ -126,15 +129,15 @@ function TopNav() {
       {configured && !isLoading && (
         isAuthenticated ? (
           <div className="flex items-center gap-2.5">
-            {user?.name && <span className="text-[13px] text-text-dim">{user.name}</span>}
-            <button type="button" className="btn btn-secondary" onClick={logout}>
+            {user?.name && <span className="text-[14px] text-text-dim">{user.name}</span>}
+            <Button variant="secondary" type="button" onClick={logout}>
               Log out
-            </button>
+            </Button>
           </div>
         ) : (
-          <button type="button" className="btn btn-secondary" onClick={() => void login({ screenHint: 'login' })}>
+          <Button variant="secondary" type="button" onClick={() => void login({ screenHint: 'login' })}>
             Log in
-          </button>
+          </Button>
         )
       )}
     </div>
@@ -142,7 +145,7 @@ function TopNav() {
 }
 
 function navLinkClassName({ isActive }: { isActive: boolean }): string {
-  return `rounded-md px-3 py-1.5 text-[13px] font-medium no-underline transition-colors ${
+  return `rounded-md px-3 py-1.5 text-[14px] font-medium no-underline transition-colors ${
     isActive ? 'text-text bg-bg-raised' : 'text-text-dim bg-transparent hover:text-text hover:bg-bg-raised/60'
   }`;
 }

@@ -2,6 +2,7 @@ import type { TunableParam } from '@motionforge/shared';
 import { SliderControl } from './SliderControl';
 import { SwitchControl } from './SwitchControl';
 import { ColorControl } from './ColorControl';
+import { PANEL, PANEL_HEADER } from '../ui/Panel';
 
 export type ParamChange = (name: string, value: number | boolean | string) => void;
 
@@ -18,12 +19,12 @@ interface Props {
  */
 export function ControlsPanel({ tunables, onChange }: Props) {
   return (
-    <section className="flex flex-col gap-2.5 rounded-lg border border-border bg-bg-raised p-3">
-      <h2 className="m-0 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-text-dim">
+    <section className={`flex flex-col gap-3 ${PANEL} p-4`}>
+      <h2 className={PANEL_HEADER}>
         Controls
       </h2>
       {tunables.length === 0 ? (
-        <p className="m-0 text-[13px] leading-relaxed text-text-dim">
+        <p className="m-0 text-[13px] leading-normal text-text-faint">
           No tunable parameters found. Annotate PARAMS entries with{' '}
           <code className="rounded bg-bg px-1 py-px">@tunable</code> to get sliders and switches.
         </p>
