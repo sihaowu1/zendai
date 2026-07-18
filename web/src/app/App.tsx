@@ -4,6 +4,7 @@ import { useSceneProject } from '../state/useSceneProject';
 import { StatusBar } from './StatusBar';
 import { ModelGenerationScreen } from '../screens/ModelGenerationScreen';
 import { VideoGenerationScreen } from '../screens/VideoGenerationScreen';
+import { ExportScreen } from '../screens/ExportScreen';
 import { ChatPanel } from '../chat/ChatPanel';
 
 /**
@@ -49,6 +50,19 @@ export function App() {
               />
             }
           />
+          <Route
+            path="/export"
+            element={
+              <ExportScreen
+                models={project.models}
+                activeModelId={project.activeModelId}
+                code={project.code}
+                tunables={project.tunables}
+                onParamChange={project.setParam}
+                mp4Job={project.mp4Job}
+              />
+            }
+          />
           <Route path="*" element={<Navigate to="/model" replace />} />
         </Routes>
       </div>
@@ -65,6 +79,9 @@ function TopNav() {
       </NavLink>
       <NavLink to="/video" style={navLinkStyle}>
         Video
+      </NavLink>
+      <NavLink to="/export" style={navLinkStyle}>
+        Export
       </NavLink>
     </nav>
   );
