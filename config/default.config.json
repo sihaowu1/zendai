@@ -28,6 +28,9 @@
     "height": 720,
     "gl": "angle"
   },
+  "mongo": {
+    "uri": ""
+  },
   "paths": {
     "renders": "renders"
   }

@@ -1,4 +1,4 @@
-import type { GenerationResult, RenderSettings } from '@motionforge/shared';
+import type { GenerationResult, MarketplaceItemDetail, MarketplaceItemSummary, PublishRequest, RenderSettings } from '@motionforge/shared';
 
 /** Thin typed client for the MotionForge server API (proxied through Vite). */
 
@@ -87,6 +87,26 @@ export const startMp4Export = (code: string, settings: RenderSettings) =>
 
 export const getMp4Job = (jobId: string) =>
   getJson<Mp4JobResponse>(`/api/export/mp4/${jobId}`);
+
+// ─── Marketplace ────────────────────────────────────────────────────────────
+
+export interface MarketplaceListResponse {
+  items: MarketplaceItemSummary[];
+  total: number;
+  page: number;
+  pages: number;
+}
+
+export const getMarketplace = (page = 1, limit = 20) =>
+  getJson<MarketplaceListResponse>(`/api/marketplace?page=${page}&limit=${limit}`);
+
+export const getMarketplaceItem = (id: string) =>
+  getJson<MarketplaceItemDetail>(`/api/marketplace/${id}`);
+
+export const publishToMarketplace = (body: PublishRequest) =>
+  postJson<{ id: string }>('/api/marketplace/publish', body);
+
+// ─── Export ─────────────────────────────────────────────────────────────────
 
 export async function exportCodeZip(code: string, blenderCode: string): Promise<Blob> {
   const response = await fetch('/api/export/code', {
