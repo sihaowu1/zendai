@@ -1,10 +1,10 @@
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
 import type { CSSProperties } from 'react';
 import { useSceneProject } from '../state/useSceneProject';
-import { PromptBar } from './PromptBar';
 import { StatusBar } from './StatusBar';
 import { ModelGenerationScreen } from '../screens/ModelGenerationScreen';
 import { VideoGenerationScreen } from '../screens/VideoGenerationScreen';
+import { ExportScreen } from '../screens/ExportScreen';
 import { ChatPanel } from '../chat/ChatPanel';
 
 /**
@@ -13,13 +13,16 @@ import { ChatPanel } from '../chat/ChatPanel';
  * `useSceneProject` lives here so both screens share one state instance —
  * per SPEC.md Issue 4, Materials/Video panes must read the same data source
  * as the Model screen's list, or the two screens will drift out of sync.
+ *
+ * Each screen owns its own chat (`ChatPanel`, with scrollback) rather than a
+ * single global prompt bar, so there's no top-level `PromptBar` mounted here
+ * anymore — see `PromptBar.tsx`'s doc comment.
  */
 export function App() {
   const project = useSceneProject();
 
   return (
     <div className="app">
-      <PromptBar busy={project.busy} onGenerate={project.generate} onModify={project.modify} />
       <TopNav />
       <div style={styles.outlet}>
         <Routes>
@@ -30,6 +33,10 @@ export function App() {
             element={
               <VideoGenerationScreen
                 models={project.models}
+                activeModelId={project.activeModelId}
+                code={project.code}
+                tunables={project.tunables}
+                onParamChange={project.setParam}
                 mp4Job={project.mp4Job}
                 clips={project.clips}
                 chat={
@@ -40,6 +47,19 @@ export function App() {
                     onModify={project.modify}
                   />
                 }
+              />
+            }
+          />
+          <Route
+            path="/export"
+            element={
+              <ExportScreen
+                models={project.models}
+                activeModelId={project.activeModelId}
+                code={project.code}
+                tunables={project.tunables}
+                onParamChange={project.setParam}
+                mp4Job={project.mp4Job}
               />
             }
           />
@@ -59,6 +79,9 @@ function TopNav() {
       </NavLink>
       <NavLink to="/video" style={navLinkStyle}>
         Video
+      </NavLink>
+      <NavLink to="/export" style={navLinkStyle}>
+        Export
       </NavLink>
     </nav>
   );

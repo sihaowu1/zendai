@@ -1,10 +1,23 @@
 import type { CSSProperties, ReactNode } from 'react';
+import type { TunableParam } from '@motionforge/shared';
+import type { ParamChange } from '../controls/ControlsPanel';
+import { ResizeHandle } from '../layout/ResizeHandle';
+import { useResizable } from '../layout/useResizable';
 import { Timeline } from '../timeline/Timeline';
 import type { Clip, Mp4JobState, SceneModel } from '../state/useSceneProject';
+import { VideoPreview } from '../video/VideoPreview';
 
 export interface VideoGenerationScreenProps {
   /** Models generated on the Model Generation screen (from `useSceneProject.models`). */
   models: SceneModel[];
+  /** The active model's id (from `useSceneProject.activeModelId`). */
+  activeModelId: string;
+  /** The active model's scene code (from `useSceneProject.code`), live-previewed until a render exists. */
+  code: string;
+  /** The active model's tunables (from `useSceneProject.tunables`), edited via the click floater. */
+  tunables: TunableParam[];
+  /** Patches a tunable on the active model (from `useSceneProject.setParam`). */
+  onParamChange: ParamChange;
   /** Current MP4 render job from `useSceneProject.mp4Job`. */
   mp4Job: Mp4JobState | null;
   /** Timeline clips (from `useSceneProject.clips`), rendered in the bottom row. */
@@ -26,23 +39,74 @@ export interface VideoGenerationScreenProps {
  */
 export function VideoGenerationScreen({
   models,
+  activeModelId,
+  code,
+  tunables,
+  onParamChange,
   mp4Job,
   clips,
   chat,
 }: VideoGenerationScreenProps) {
+  const activeModel = models.find((m) => m.id === activeModelId);
+
+  const chatWidth = useResizable({
+    direction: 'horizontal',
+    initial: 280,
+    min: 200,
+    max: 640,
+    storageKey: 'motionforge:video-screen:chat-width',
+  });
+  const materialsWidth = useResizable({
+    direction: 'horizontal',
+    initial: 240,
+    min: 160,
+    max: 640,
+    storageKey: 'motionforge:video-screen:materials-width',
+  });
+  const timelineHeight = useResizable({
+    direction: 'vertical',
+    initial: 200,
+    min: 120,
+    max: 420,
+    storageKey: 'motionforge:video-screen:timeline-height',
+    invert: true,
+  });
+
   return (
-    <section className="video-screen" style={styles.root}>
-      <div className="video-screen__top" style={styles.top}>
+    <section
+      className="video-screen"
+      style={{ ...styles.root, gridTemplateRows: `1fr 1px ${timelineHeight.size}px` }}
+    >
+      <div
+        className="video-screen__top"
+        style={{
+          ...styles.top,
+          gridTemplateColumns: `${chatWidth.size}px 1px ${materialsWidth.size}px 1px 1fr`,
+        }}
+      >
         <Pane title="Chat" area="chat">
           {chat ?? <Placeholder label="Chat" hint="Prompt the AI to edit or extend the video." />}
         </Pane>
+        <ResizeHandle direction="horizontal" onPointerDown={chatWidth.startDragging} label="Resize chat panel" />
         <Pane title="Materials" area="materials">
           <MaterialsList models={models} />
         </Pane>
-        <Pane title="Resulting Video" area="video">
-          <VideoPreview job={mp4Job} />
+        <ResizeHandle
+          direction="horizontal"
+          onPointerDown={materialsWidth.startDragging}
+          label="Resize materials panel"
+        />
+        <Pane title="Resulting Video" area="video" bodyStyle={styles.videoPaneBody}>
+          <VideoPreview
+            job={mp4Job}
+            code={code}
+            tunables={tunables}
+            onParamChange={onParamChange}
+            modelName={activeModel?.name ?? 'Model'}
+          />
         </Pane>
       </div>
+      <ResizeHandle direction="vertical" onPointerDown={timelineHeight.startDragging} label="Resize timeline" />
       <div className="video-screen__timeline" style={styles.timeline}>
         <Pane title="Timeline" area="timeline">
           <Timeline
@@ -86,59 +150,16 @@ function MaterialsList({ models }: { models: SceneModel[] }) {
   );
 }
 
-/**
- * Playback of the current Remotion render.
- * Renders one of four states straight from `mp4Job`:
- *   - null          → "not rendered yet" placeholder
- *   - running       → progress placeholder
- *   - error         → error placeholder
- *   - done + url    → <video> element
- */
-function VideoPreview({ job }: { job: Mp4JobState | null }) {
-  if (!job) {
-    return (
-      <Placeholder
-        label="No render yet"
-        hint="Start a render from the export panel to see the result here."
-      />
-    );
-  }
-  if (job.status === 'running') {
-    const pct = Math.round((job.progress ?? 0) * 100);
-    return (
-      <Placeholder
-        label={`Rendering… ${pct}%`}
-        hint={job.message || 'The MP4 render is in progress.'}
-      />
-    );
-  }
-  if (job.status === 'error') {
-    return (
-      <Placeholder label="Render failed" hint={job.error || 'The MP4 render did not complete.'} />
-    );
-  }
-  if (job.status === 'done' && job.url) {
-    return (
-      <video
-        key={job.url}
-        src={job.url}
-        controls
-        style={styles.video}
-        aria-label="Rendered video preview"
-      />
-    );
-  }
-  return <Placeholder label="Render finished" hint="Waiting for the video URL…" />;
-}
-
 function Pane({
   title,
   area,
   children,
+  bodyStyle,
 }: {
   title: string;
   area: string;
   children: ReactNode;
+  bodyStyle?: CSSProperties;
 }) {
   return (
     <div
@@ -147,7 +168,9 @@ function Pane({
       aria-label={title}
     >
       <header style={styles.paneHeader}>{title}</header>
-      <div style={styles.paneBody}>{children}</div>
+      <div style={bodyStyle ? { ...styles.paneBody, ...bodyStyle } : styles.paneBody}>
+        {children}
+      </div>
     </div>
   );
 }
@@ -165,8 +188,8 @@ const styles = {
   root: {
     display: 'grid',
     gridTemplateRows: '1fr auto',
-    gap: 10,
-    padding: 10,
+    gap: 0,
+    padding: 0,
     minHeight: 0,
     height: '100%',
     background: 'var(--bg)',
@@ -175,13 +198,11 @@ const styles = {
   top: {
     display: 'grid',
     gridTemplateColumns: 'minmax(240px, 1fr) minmax(200px, 1fr) minmax(320px, 2fr)',
-    gap: 10,
+    gap: 0,
     minHeight: 0,
   },
   timeline: {
-    minHeight: 140,
-    height: '22vh',
-    maxHeight: 260,
+    minHeight: 0,
     display: 'flex',
   },
   pane: {
@@ -190,8 +211,6 @@ const styles = {
     minHeight: 0,
     flex: 1,
     background: 'var(--bg-panel)',
-    border: '1px solid var(--border)',
-    borderRadius: 6,
     overflow: 'hidden',
   },
   paneHeader: {
@@ -209,6 +228,10 @@ const styles = {
     minHeight: 0,
     overflow: 'auto',
     padding: 12,
+  },
+  videoPaneBody: {
+    overflow: 'hidden',
+    padding: 0,
   },
   placeholder: {
     height: '100%',
@@ -262,13 +285,5 @@ const styles = {
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-  },
-  video: {
-    width: '100%',
-    height: '100%',
-    maxHeight: '100%',
-    background: '#000',
-    borderRadius: 4,
-    display: 'block',
   },
 } satisfies Record<string, CSSProperties>;
