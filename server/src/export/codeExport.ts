@@ -9,6 +9,28 @@ export interface CodeExportOptions {
   title?: string;
 }
 
+export interface ProjectFile {
+  path: string;
+  content: string;
+}
+
+/**
+ * Same file set used by ZIP download and GitHub push — keep them in sync.
+ */
+export function buildProjectFiles(options: CodeExportOptions): ProjectFile[] {
+  const title = options.title?.trim() || 'MotionForge scene';
+  const files: ProjectFile[] = [
+    { path: 'scene.module.js', content: options.code },
+    { path: 'index.html', content: viewerHtml(title) },
+    { path: 'viewer.js', content: viewerJs() },
+  ];
+  if (options.blenderCode?.trim()) {
+    files.push({ path: 'scene.blender.py', content: options.blenderCode });
+  }
+  files.push({ path: 'README.md', content: exportReadme(title) });
+  return files;
+}
+
 /**
  * Streams a ZIP of the generated project as code: the scene module, a
  * standalone Three.js viewer, the Blender script, and a README.
@@ -23,12 +45,8 @@ export function streamProjectZip(res: Response, options: CodeExportOptions): voi
   archive.on('error', (err) => res.destroy(err));
   archive.pipe(res);
 
-  archive.append(options.code, { name: 'scene.module.js' });
-  archive.append(viewerHtml(title), { name: 'index.html' });
-  archive.append(viewerJs(), { name: 'viewer.js' });
-  if (options.blenderCode?.trim()) {
-    archive.append(options.blenderCode, { name: 'scene.blender.py' });
+  for (const file of buildProjectFiles(options)) {
+    archive.append(file.content, { name: file.path });
   }
-  archive.append(exportReadme(title), { name: 'README.md' });
   void archive.finalize();
 }

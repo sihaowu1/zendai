@@ -14,7 +14,7 @@ export interface AuthValue {
   isLoading: boolean;
   isAuthenticated: boolean;
   user: { name?: string; email?: string; picture?: string } | undefined;
-  login: (opts?: { screenHint?: 'signup' | 'login' }) => Promise<void>;
+  login: (opts?: { screenHint?: 'signup' | 'login'; connection?: string }) => Promise<void>;
   logout: () => void;
   getAccessToken: () => Promise<string | undefined>;
 }
@@ -42,10 +42,13 @@ function Auth0Bridge({ children }: { children: ReactNode }) {
   } = useAuth0();
 
   const login = useCallback(
-    async (opts?: { screenHint?: 'signup' | 'login' }) => {
+    async (opts?: { screenHint?: 'signup' | 'login'; connection?: string }) => {
       await loginWithRedirect({
-        appState: { returnTo: '/model' },
-        authorizationParams: opts?.screenHint ? { screen_hint: opts.screenHint } : undefined,
+        appState: { returnTo: opts?.connection === 'github' ? '/export' : '/model' },
+        authorizationParams: {
+          ...(opts?.screenHint ? { screen_hint: opts.screenHint } : {}),
+          ...(opts?.connection ? { connection: opts.connection } : {}),
+        },
       });
     },
     [loginWithRedirect],
@@ -58,8 +61,14 @@ function Auth0Bridge({ children }: { children: ReactNode }) {
 
   const getAccessToken = useCallback(async () => {
     try {
-      return await getAccessTokenSilently();
-    } catch {
+      return await getAccessTokenSilently({
+        authorizationParams: auth0Config.audience
+          ? { audience: auth0Config.audience }
+          : undefined,
+      });
+    } catch (err) {
+      // Consent / missing API audience often needs an interactive login.
+      console.warn('[auth] getAccessTokenSilently failed', err);
       return undefined;
     }
   }, [getAccessTokenSilently]);

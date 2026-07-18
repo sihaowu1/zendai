@@ -59,6 +59,12 @@ export function App() {
             path="/export"
             element={
               <ExportScreen
+                code={project.code}
+                blenderCode={project.blenderCode}
+                modelName={project.models.find((m) => m.id === project.activeModelId)?.name ?? 'Scene'}
+                busy={project.busy}
+                onExportCode={project.exportCode}
+                onExportMp4={project.exportMp4}
                 tunables={project.tunables}
                 onParamChange={project.setParam}
                 mp4Job={project.mp4Job}

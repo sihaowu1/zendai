@@ -8,6 +8,12 @@ dotenv.config({ path: path.join(repoRoot, '.env') });
 export interface AppConfig {
   server: { port: number };
   ai: { model: string; maxTokens: number; maxAgentIterations: number };
+  auth0: {
+    domain: string;
+    audience: string;
+    mgmtClientId: string;
+    mgmtClientSecret: string;
+  };
   auth0: { domain: string; audience: string };
   mongo: { uri: string };
   blender: {
@@ -43,6 +49,8 @@ export const config: AppConfig = {
   auth0: {
     domain: process.env.AUTH0_DOMAIN ?? raw.auth0?.domain ?? '',
     audience: process.env.AUTH0_AUDIENCE ?? raw.auth0?.audience ?? '',
+    mgmtClientId: process.env.AUTH0_MGMT_CLIENT_ID ?? raw.auth0?.mgmtClientId ?? '',
+    mgmtClientSecret: process.env.AUTH0_MGMT_CLIENT_SECRET ?? raw.auth0?.mgmtClientSecret ?? '',
   },
   mongo: { uri: process.env.MONGODB_URI ?? raw.mongo?.uri ?? '' },
   blender: { ...raw.blender, enabled: envBool('BLENDER_MCP_ENABLED', raw.blender.enabled) },
@@ -52,6 +60,10 @@ export const config: AppConfig = {
 /** True when Auth0 JWT validation can run (domain + audience both set). */
 export const auth0Configured = Boolean(config.auth0.domain && config.auth0.audience);
 
+/** True when Management API can fetch GitHub IdP tokens for a user. */
+export const auth0MgmtConfigured = Boolean(
+  config.auth0.domain && config.auth0.mgmtClientId && config.auth0.mgmtClientSecret,
+);
 /** True when MongoDB URI is configured. */
 export const mongoConfigured = Boolean(config.mongo.uri);
 
