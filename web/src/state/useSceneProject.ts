@@ -57,6 +57,15 @@ export interface SceneModel {
    * export/modify/tunables still have a primary target.
    */
   childIds?: string[];
+  /**
+   * When set, this row is a statically-imported GLB/glTF asset (e.g. a
+   * Blender export) rather than AI-generated code. `code` stays a valid
+   * empty scene module so the rest of the pipeline (tunables, layers,
+   * export) keeps working harmlessly; the viewport renders the asset
+   * directly via `assetUrl` instead of evaluating `code` — see
+   * `SceneRuntime.createImportedModule`.
+   */
+  assetUrl?: string;
 }
 
 /** A rendered scene placed on the Video screen's timeline. */
@@ -71,6 +80,20 @@ export interface Clip {
 }
 
 const DEFAULT_MODEL_ID = 'default';
+
+/** Placeholder module for imported assets — satisfies `validateSceneModule` but carries no geometry of its own (the viewport renders `assetUrl` instead). */
+const IMPORTED_MODEL_CODE = `// Imported model — rendered from the attached GLB/glTF asset, not from this code.
+export const PARAMS = {};
+export function buildScene() { return {}; }
+export function updateScene() {}
+`;
+
+/** Strip the extension and tidy up a filename for display, e.g. "robot_arm.glb" -> "robot arm". */
+function nameFromFileName(fileName: string): string {
+  const withoutExt = fileName.replace(/\.(glb|gltf)$/i, '');
+  const spaced = withoutExt.replace(/[_-]+/g, ' ').trim();
+  return spaced || 'Imported model';
+}
 
 function makeDefaultModel(): SceneModel {
   return {
@@ -256,6 +279,31 @@ export function useSceneProject() {
       }),
     [run],
   );
+
+  /**
+   * Imports a Blender-exported GLB/glTF file as a new model row — no AI
+   * involved, no server round-trip. The file is kept as an in-memory blob
+   * URL (not persisted across reloads), and appears in both the Models &
+   * Layers list and the Video screen's Materials pane (which reuses this
+   * same `models` array).
+   */
+  const importModel = useCallback((file: File) => {
+    const id = makeId();
+    const assetUrl = URL.createObjectURL(file);
+    setModels((current) => [
+      ...current,
+      {
+        id,
+        name: nameFromFileName(file.name),
+        code: IMPORTED_MODEL_CODE,
+        createdAt: Date.now(),
+        assetUrl,
+      },
+    ]);
+    setActiveModelId(id);
+    setSelectedModelIds([id]);
+    setStatus({ kind: 'info', text: `Imported “${file.name}”.` });
+  }, []);
 
   const modify = useCallback(
     (prompt: string, image?: ReferenceImage) =>
@@ -661,6 +709,7 @@ export function useSceneProject() {
     previewModelName,
     generate,
     modify,
+    importModel,
     animate,
     aspectRatio,
     setAspectRatio,
@@ -685,14 +734,14 @@ function downloadBlob(blob: Blob, name: string): void {
 export function resolveViewportScenes(
   model: SceneModel,
   models: SceneModel[],
-): Array<{ id: string; code: string }> {
+): Array<{ id: string; code: string; assetUrl?: string }> {
   if (model.childIds?.length) {
-    const scenes: Array<{ id: string; code: string }> = [];
+    const scenes: Array<{ id: string; code: string; assetUrl?: string }> = [];
     for (const childId of model.childIds) {
       const child = models.find((m) => m.id === childId);
-      if (child?.code) scenes.push({ id: child.id, code: child.code });
+      if (child?.code) scenes.push({ id: child.id, code: child.code, assetUrl: child.assetUrl });
     }
     if (scenes.length > 0) return scenes;
   }
-  return [{ id: model.id, code: model.code }];
+  return [{ id: model.id, code: model.code, assetUrl: model.assetUrl }];
 }

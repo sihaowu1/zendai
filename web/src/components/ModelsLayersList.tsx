@@ -113,6 +113,7 @@ export function ModelsLayersList({
           const active = model.id === activeModelId;
           const selected = selectedModelIds.includes(model.id);
           const isMerge = Boolean(model.childIds?.length);
+          const isBlender = Boolean(model.assetUrl);
           const childModels = (model.childIds ?? [])
             .map((id) => modelsById.get(id))
             .filter((m): m is SceneModel => Boolean(m));
@@ -190,6 +191,15 @@ export function ModelsLayersList({
                     </span>
                   )}
                 </button>
+                {isBlender && (
+                  <span
+                    className="flex-shrink-0 select-none rounded border border-border px-1.5 py-px text-[10px] font-medium leading-tight text-text-dim"
+                    title="Blender object"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    Blender
+                  </span>
+                )}
                 <button
                   type="button"
                   className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded border-none bg-transparent text-text-dim opacity-0 transition-opacity hover:bg-bg-hover hover:text-text group-hover/model:opacity-100 focus-visible:opacity-100"

@@ -73,7 +73,7 @@ export const Viewport = forwardRef<ViewportHandle, Props>(function Viewport(
 
   // Stable signature so object-identity churn on `scenes` doesn't thrash reloads.
   const scenesKey = useMemo(
-    () => resolvedScenes.map((s) => `${s.id}:${s.code}`).join('\0'),
+    () => resolvedScenes.map((s) => `${s.id}:${s.code}:${s.assetUrl ?? ''}`).join('\0'),
     [resolvedScenes],
   );
   const resolvedScenesRef = useRef(resolvedScenes);

@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { UploadSimple } from '@phosphor-icons/react';
 import { ChatPanel } from '../ChatPanel';
 import { ControlsFloater } from '../controls/ControlsFloater';
 import { ResizeHandle } from '../layout/ResizeHandle';
@@ -6,6 +7,7 @@ import { useResizable } from '../layout/useResizable';
 import { ModelsLayersList } from '../ModelsLayersList';
 import type { useSceneProject } from '../../state/useSceneProject';
 import { Viewport } from '../../viewport/Viewport';
+import { IconButton } from '../ui/Button';
 import { PANEL_HEADER } from '../ui/Panel';
 
 interface Props {
@@ -34,6 +36,7 @@ interface Props {
 export function ModelGenerationScreen({ project }: Props) {
   const [clickAnchor, setClickAnchor] = useState<{ x: number; y: number } | null>(null);
   const activeModel = project.models.find((m) => m.id === project.activeModelId);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   const leftWidth = useResizable({
     direction: 'horizontal',
@@ -76,12 +79,33 @@ export function ModelGenerationScreen({ project }: Props) {
         </section>
         <ResizeHandle direction="vertical" onPointerDown={chatHeight.startDragging} label="Resize chat panel" />
         <section className="flex min-h-0 flex-1 flex-col gap-2 p-3" aria-label="Models & Layers">
-          <h2
-            className={`flex-shrink-0 ${PANEL_HEADER}`}
-            title="Click to select a model. Shift-click to select several and merge them."
-          >
-            Models &amp; Layers
-          </h2>
+          <div className="flex flex-shrink-0 items-center justify-between gap-2">
+            <h2
+              className={PANEL_HEADER}
+              title="Click to select a model. Shift-click to select several and merge them."
+            >
+              Models &amp; Layers
+            </h2>
+            <IconButton
+              className="h-6 w-6"
+              title="Import a Blender-exported GLB/glTF model"
+              aria-label="Import a Blender-exported GLB/glTF model"
+              onClick={() => importInputRef.current?.click()}
+            >
+              <UploadSimple size={13} weight="bold" aria-hidden="true" />
+            </IconButton>
+            <input
+              ref={importInputRef}
+              type="file"
+              accept=".glb,.gltf,model/gltf-binary,model/gltf+json"
+              className="hidden"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) project.importModel(file);
+                event.target.value = '';
+              }}
+            />
+          </div>
           <div className="min-h-0 flex-1 overflow-y-auto">
             <ModelsLayersList
               models={project.models}
