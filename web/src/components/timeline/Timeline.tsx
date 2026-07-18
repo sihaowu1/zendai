@@ -3,6 +3,7 @@ import type { DragEvent as ReactDragEvent, MouseEvent as ReactMouseEvent, Pointe
 import { Pause, Play, Rewind, SkipBack, SkipForward, FastForward } from '@phosphor-icons/react';
 import { PLAYBACK_RATES, type TimelinePlayback } from './useTimelinePlayback';
 import { deriveTimelineTotal, MIN_CLIP_DURATION, type TimelineClip } from './timelineMath';
+import { IconButton } from '../ui/Button';
 
 export type { TimelineClip } from './timelineMath';
 export { deriveTimelineTotal } from './timelineMath';
@@ -211,13 +212,13 @@ export function Timeline({
       >
         <Ruler total={total} />
         <div
-          className={`relative min-h-[40px] flex-1 overflow-hidden rounded border border-border bg-bg-raised ${
+          className={`relative min-h-[40px] flex-1 overflow-hidden rounded-md border border-border bg-bg-raised ${
             isDropTarget ? 'shadow-[inset_0_0_0_2px_var(--color-accent)]' : ''
           }`}
           role="list"
         >
           {clips.length === 0 && (
-            <span className="absolute inset-0 flex items-center justify-center text-[13px] text-text-dim">
+            <span className="absolute inset-0 flex items-center justify-center text-[14px] text-text-dim">
               No clips yet — rendered scenes will appear here.
             </span>
           )}
@@ -232,12 +233,14 @@ export function Timeline({
                 title={`${clip.label} — ${clip.start.toFixed(2)}s → ${(
                   clip.start + clip.duration
                 ).toFixed(2)}s`}
-                className="absolute top-1 bottom-1 flex min-w-[2px] items-center rounded-[3px] px-1.5 text-xs font-semibold text-[#0b0d12] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.25)]"
+                // Clips carry the scene's violet, not the blue accent — the
+                // playhead is blue and has to stay visible crossing a clip.
+                className="absolute top-1 bottom-1 flex min-w-[2px] items-center overflow-hidden rounded-[3px] px-1.5 text-xs font-semibold text-white shadow-[inset_0_0_0_1px_rgba(0,0,0,0.25)]"
                 onContextMenu={(event) => handleClipContextMenu(event, clip.id)}
                 style={{
                   left: `${leftPct}%`,
                   width: `${widthPct}%`,
-                  background: clip.color ?? 'var(--color-accent)',
+                  background: clip.color ?? 'var(--color-scene)',
                 }}
               >
                 <span className="overflow-hidden text-ellipsis whitespace-nowrap">{clip.label}</span>
@@ -372,31 +375,32 @@ function TransportBar({
   onStepForward,
   onSetPlaybackRate,
 }: TransportBarProps) {
-  const transportButtonClass = 'btn-icon h-7 w-7';
+  const transportButtonClass = 'h-7 w-7';
 
   return (
     <div className="flex flex-shrink-0 items-center gap-1" role="toolbar" aria-label="Playback controls">
-      <button type="button" className={transportButtonClass} onClick={onSkipToStart} aria-label="Skip to start">
+      <IconButton type="button" className={transportButtonClass} onClick={onSkipToStart} aria-label="Skip to start">
         <SkipBack size={14} weight="fill" />
-      </button>
-      <button type="button" className={transportButtonClass} onClick={onStepBack} aria-label="Step back 1 second">
+      </IconButton>
+      <IconButton type="button" className={transportButtonClass} onClick={onStepBack} aria-label="Step back 1 second">
         <Rewind size={14} weight="fill" />
-      </button>
-      <button
+      </IconButton>
+      <IconButton
         type="button"
-        className="btn-icon h-7 w-8 border border-accent bg-accent text-white hover:bg-accent-hover hover:border-accent-hover"
+        active
+        className="h-7 w-8"
         onClick={onTogglePlay}
         aria-label={isPlaying ? 'Pause' : 'Play'}
       >
         {isPlaying ? <Pause size={14} weight="fill" /> : <Play size={14} weight="fill" />}
-      </button>
-      <button type="button" className={transportButtonClass} onClick={onStepForward} aria-label="Step forward 1 second">
+      </IconButton>
+      <IconButton type="button" className={transportButtonClass} onClick={onStepForward} aria-label="Step forward 1 second">
         <FastForward size={14} weight="fill" />
-      </button>
-      <button type="button" className={transportButtonClass} onClick={onSkipToEnd} aria-label="Skip to end">
+      </IconButton>
+      <IconButton type="button" className={transportButtonClass} onClick={onSkipToEnd} aria-label="Skip to end">
         <SkipForward size={14} weight="fill" />
-      </button>
-      <span className="ml-1.5 text-[12px] tabular-nums text-text-dim">
+      </IconButton>
+      <span className="ml-1.5 font-mono text-[13px] tabular-nums text-text-dim">
         {formatSeconds(currentTime)} / {formatSeconds(total)}
       </span>
       <span className="ml-auto flex gap-0.5" role="group" aria-label="Playback speed">
@@ -404,10 +408,12 @@ function TransportBar({
           <button
             key={rate}
             type="button"
-            className={`rounded-md border px-1.5 py-0.5 text-[11px] tabular-nums cursor-pointer transition-colors ${
+            // A speed toggle is a setting, not a call to action — it gets the
+            // same tint-shift treatment as any other selected item.
+            className={`rounded-md border border-border px-1.5 py-0.5 text-[12px] tabular-nums cursor-pointer transition-colors ${
               rate === playbackRate
-                ? 'border-accent bg-accent text-white'
-                : 'border-border bg-bg-raised text-text-dim hover:text-text hover:bg-bg-hover'
+                ? 'bg-bg-hover text-text'
+                : 'bg-bg-raised text-text-dim hover:text-text hover:bg-bg-hover'
             }`}
             onClick={() => onSetPlaybackRate(rate)}
             aria-pressed={rate === playbackRate}
@@ -431,7 +437,7 @@ function Ruler({ total }: { total: number }) {
   for (let t = 0; t <= total + 1e-6; t += step) ticks.push(t);
 
   return (
-    <div className="relative h-4 flex-shrink-0 text-[10px] text-text-dim" aria-hidden="true">
+    <div className="relative h-4 flex-shrink-0 text-[11px] text-text-dim" aria-hidden="true">
       {ticks.map((t) => (
         <span
           key={t}

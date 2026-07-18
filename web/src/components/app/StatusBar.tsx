@@ -5,7 +5,7 @@ interface Props {
   status: Status | null;
 }
 
-const base = 'flex-shrink-0 border-t border-border bg-bg-panel px-3.5 py-1.5 text-[12px] text-text-dim';
+const base = 'flex-shrink-0 border-t border-border bg-bg-panel px-4 py-2 text-[13px] text-text-dim';
 
 const kindClass: Record<string, string> = {
   busy: 'text-warn',

@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Status } from '../state/useSceneProject';
+import { Button } from './ui/Button';
+import { PANEL_HEADER } from './ui/Panel';
+import { FIELD } from './ui/Input';
 
 /**
  * A single chat entry rendered in the message list.
@@ -22,6 +25,12 @@ interface Props {
   modifyLabel?: string;
   placeholder?: string;
   emptyHint?: string;
+  /**
+   * Set false where the surrounding container already labels this pane — the
+   * Video screen wraps it in a titled `Pane`, and two stacked headers read as
+   * a bug.
+   */
+  showTitle?: boolean;
 }
 
 /**
@@ -40,7 +49,8 @@ export function ChatPanel({
   generateLabel = 'Generate',
   modifyLabel = 'Modify',
   placeholder = 'Ask to modify the model, or generate a new one…',
-  emptyHint = 'Ask the AI to modify the current model, or start a new one with Generate.',
+  emptyHint = 'Generate builds a new scene. Modify edits the one you\'re looking at.',
+  showTitle = true,
 }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -77,24 +87,38 @@ export function ChatPanel({
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2">
+    <div className="flex h-full min-h-0 flex-col gap-2.5">
+      {showTitle && (
+        <h2 className={`flex-none ${PANEL_HEADER}`}>
+          Scene chat
+        </h2>
+      )}
       <div ref={listRef} className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto pr-1">
+        {/* An empty screen is an invitation to act, so it centres in the space
+            it owns and names the two things you can do rather than floating a
+            line of italic prose at the top of a tall blank column. */}
         {messages.length === 0 && (
-          <div className="px-1 py-2 text-[13px] italic text-text-dim">{emptyHint}</div>
+          <div className="flex flex-1 flex-col items-center justify-center gap-1.5 px-3 text-center">
+            <p className="m-0 text-[14px] font-semibold text-text-dim">Describe a scene</p>
+            <p className="m-0 text-[13px] leading-normal text-text-faint">{emptyHint}</p>
+          </div>
         )}
         {messages.map((m) => (
           <div
             key={m.id}
-            className={`max-w-[90%] whitespace-pre-wrap break-words rounded-lg px-2.5 py-1.5 text-[13px] leading-snug ${
+            // Speaker is carried by side and fill weight, not by hue. A blue
+            // bubble per user turn filled the transcript with the accent and
+            // left the Generate button with nothing to distinguish it.
+            className={`max-w-[90%] whitespace-pre-wrap break-words rounded-lg border px-3 py-2 text-[14px] leading-snug ${
               m.role === 'user'
-                ? 'self-end bg-accent font-medium text-white'
-                : 'self-start border border-border bg-bg-raised text-text'
+                ? 'self-end border-border-strong bg-bg-hover text-text'
+                : 'self-start border-border bg-bg-raised text-text-dim'
             } ${m.kind === 'error' ? 'border-error bg-error/15 text-error' : ''}`}
           >
             {m.text}
           </div>
         ))}
-        {busy !== null && <div className="self-start px-1 py-1 text-[13px] italic text-text-dim">{busy}</div>}
+        {busy !== null && <div className="self-start px-1 py-1 text-[14px] italic text-text-dim">{busy}</div>}
       </div>
       <form
         className="flex flex-shrink-0 flex-col gap-1.5"
@@ -108,7 +132,7 @@ export function ChatPanel({
           onChange={(event) => setInput(event.target.value)}
           placeholder={placeholder}
           rows={2}
-          className="resize-none rounded-md border border-border bg-bg-raised p-2 font-sans text-[13px] text-text placeholder:text-text-faint focus:border-accent focus:outline-none"
+          className={`resize-none font-sans ${FIELD}`}
           disabled={busy !== null}
           onKeyDown={(event) => {
             // Enter sends (Modify). Shift+Enter inserts a newline.
@@ -119,12 +143,12 @@ export function ChatPanel({
           }}
         />
         <div className="flex justify-end gap-1.5">
-          <button type="button" className="btn btn-secondary" disabled={disabled} onClick={() => send('generate')}>
+          <Button variant="secondary" type="button" disabled={disabled} onClick={() => send('generate')}>
             {generateLabel}
-          </button>
-          <button type="submit" className="btn btn-primary" disabled={disabled}>
+          </Button>
+          <Button variant="primary" type="submit" disabled={disabled}>
             {modifyLabel}
-          </button>
+          </Button>
         </div>
       </form>
     </div>

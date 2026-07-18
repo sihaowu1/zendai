@@ -25,7 +25,7 @@ export interface RequireAuthProps {
  */
 export function RequireAuth({
   children,
-  loading = <p className="m-0 text-[13px] leading-relaxed text-text-dim">Checking sign-in…</p>,
+  loading = <p className="m-0 text-[13px] leading-normal text-text-faint">Checking sign-in…</p>,
   fallback,
   redirectToLogin = false,
 }: RequireAuthProps) {

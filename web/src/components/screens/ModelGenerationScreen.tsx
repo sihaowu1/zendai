@@ -6,6 +6,7 @@ import { useResizable } from '../layout/useResizable';
 import { ModelsLayersList } from '../ModelsLayersList';
 import type { useSceneProject } from '../../state/useSceneProject';
 import { Viewport } from '../../viewport/Viewport';
+import { PANEL_HEADER } from '../ui/Panel';
 
 interface Props {
   project: ReturnType<typeof useSceneProject>;
@@ -75,7 +76,7 @@ export function ModelGenerationScreen({ project }: Props) {
         </section>
         <ResizeHandle direction="vertical" onPointerDown={chatHeight.startDragging} label="Resize chat panel" />
         <section className="flex min-h-0 flex-1 flex-col gap-2 p-3" aria-label="Models & Layers">
-          <h2 className="m-0 flex-shrink-0 text-[11px] font-semibold uppercase tracking-wider text-text-dim">
+          <h2 className={`flex-shrink-0 ${PANEL_HEADER}`}>
             Models &amp; Layers
           </h2>
           <div className="min-h-0 flex-1 overflow-y-auto">

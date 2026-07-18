@@ -12,6 +12,9 @@ import type { TimelineClip } from '../timeline/timelineMath';
 import type { TimelinePlayback } from '../timeline/useTimelinePlayback';
 import type { Mp4JobState, SceneModel } from '../../state/useSceneProject';
 import { VideoPreview } from '../VideoPreview';
+import { Button, ButtonLink, IconButton } from '../ui/Button';
+import { PANEL, PANEL_HEADER } from '../ui/Panel';
+import { FIELD, FIELD_LABEL } from '../ui/Input';
 
 export interface ExportScreenProps {
   /** All models to push under `models/` on GitHub commit/create. */
@@ -154,22 +157,25 @@ export function ExportScreen({
       style={{ ['--export-left-w' as string]: `${leftWidth.size}px` }}
     >
       <div className="flex min-h-0 min-w-0 flex-col gap-2.5 overflow-y-auto bg-bg-panel p-3">
-        <section className="flex flex-col gap-2.5 rounded-lg border border-border bg-bg-raised p-3" aria-label="Export options">
-          <h2 className="m-0 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-text-dim">
+        <section className={`flex flex-col gap-3 ${PANEL} p-4`} aria-label="Export options">
+          <h2 className={PANEL_HEADER}>
             Export options
           </h2>
-          <p className="m-0 text-[13px] leading-relaxed text-text-dim">
+          <p className="m-0 text-[13px] leading-normal text-text-faint">
             Download the generated project as code, or render it to an MP4.
           </p>
-          <button type="button" className="btn btn-secondary" disabled={exportBusy} onClick={onExportCode}>
+          <Button variant="secondary" type="button" disabled={exportBusy} onClick={onExportCode}>
             Export code (.zip)
-          </button>
+          </Button>
 
-          <div className="grid grid-cols-3 gap-1.5">
-            <label className="flex flex-col gap-1 text-[11px] text-text-dim">
+          {/* Size carries the longest option text ("1080 × 1920 (vertical)"),
+              which still clipped at 1.5fr in this sidebar. It gets its own full
+              -width row instead; FPS and Seconds are short and pair cleanly. */}
+          <div className="grid grid-cols-2 gap-2">
+            <label className={FIELD_LABEL}>
               FPS
               <select
-                className="rounded-md border border-border bg-bg px-2 py-1 text-[13px] text-text focus:border-accent focus:outline-none"
+                className={FIELD}
                 value={fps}
                 onChange={(event) => setFps(Number(event.target.value))}
                 disabled={exportBusy}
@@ -179,11 +185,11 @@ export function ExportScreen({
                 <option value={60}>60</option>
               </select>
             </label>
-            <label className="flex flex-col gap-1 text-[11px] text-text-dim">
+            <label className={FIELD_LABEL}>
               Seconds
               <input
                 type="number"
-                className="rounded-md border border-border bg-bg px-2 py-1 text-[13px] text-text focus:border-accent focus:outline-none"
+                className={FIELD}
                 min={1}
                 max={60}
                 value={duration}
@@ -191,10 +197,10 @@ export function ExportScreen({
                 onChange={(event) => setDuration(Number(event.target.value))}
               />
             </label>
-            <label className="flex flex-col gap-1 text-[11px] text-text-dim">
+            <label className={`col-span-2 ${FIELD_LABEL}`}>
               Size
               <select
-                className="rounded-md border border-border bg-bg px-2 py-1 text-[13px] text-text focus:border-accent focus:outline-none"
+                className={FIELD}
                 value={resolution}
                 disabled={exportBusy}
                 onChange={(event) => setResolution(Number(event.target.value))}
@@ -208,9 +214,9 @@ export function ExportScreen({
             </label>
           </div>
 
-          <button
+          <Button
+            variant="primary"
             type="button"
-            className="btn btn-primary"
             disabled={exportBusy || rendering}
             onClick={() =>
               onExportMp4({
@@ -222,7 +228,7 @@ export function ExportScreen({
             }
           >
             {rendering ? 'Rendering…' : 'Render MP4 (Remotion)'}
-          </button>
+          </Button>
 
           {mp4Job && (
             <div className="flex flex-col gap-1.5">
@@ -234,32 +240,28 @@ export function ExportScreen({
                       style={{ width: `${Math.round(mp4Job.progress * 100)}%` }}
                     />
                   </div>
-                  <p className="m-0 text-[13px] leading-relaxed text-text-dim">
+                  <p className="m-0 text-[13px] leading-normal text-text-faint">
                     {mp4Job.message} ({Math.round(mp4Job.progress * 100)}%)
                   </p>
                 </>
               )}
               {mp4Job.status === 'done' && mp4Job.url && (
-                <a
-                  className="inline-block rounded-md bg-ok px-3.5 py-2 text-center font-semibold text-white no-underline"
-                  href={mp4Job.url}
-                  download
-                >
+                <ButtonLink variant="success" href={mp4Job.url} download>
                   Download MP4
-                </a>
+                </ButtonLink>
               )}
               {mp4Job.status === 'error' && (
-                <p className="m-0 text-[13px] leading-relaxed text-error">{mp4Job.error}</p>
+                <p className="m-0 text-[14px] leading-relaxed text-error">{mp4Job.error}</p>
               )}
             </div>
           )}
         </section>
 
-        <section className="flex flex-col gap-2.5 rounded-lg border border-border bg-bg-raised p-3" aria-label="Export to GitHub">
-          <h2 className="m-0 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-text-dim">
+        <section className={`flex flex-col gap-3 ${PANEL} p-4`} aria-label="Export to GitHub">
+          <h2 className={PANEL_HEADER}>
             Export to GitHub
           </h2>
-          <p className="m-0 text-[13px] leading-relaxed text-text-dim">
+          <p className="m-0 text-[13px] leading-normal text-text-faint">
             Save all models under <code className="text-text">models/</code> (and an empty{' '}
             <code className="text-text">animations/</code> folder) to a GitHub repo. Sign in with
             GitHub is required.
@@ -267,15 +269,15 @@ export function ExportScreen({
           <RequireAuth
             fallback={
               configured ? (
-                <button
+                <Button
+                  variant="secondary"
                   type="button"
-                  className="btn btn-primary"
                   onClick={() => void login({ screenHint: 'login', connection: 'github' })}
                 >
                   Log in with GitHub
-                </button>
+                </Button>
               ) : (
-                <p className="m-0 text-[13px] leading-relaxed text-text-dim">
+                <p className="m-0 text-[13px] leading-normal text-text-faint">
                   Configure Auth0 (`VITE_AUTH0_*`) to enable GitHub sign-in.
                 </p>
               )
@@ -283,26 +285,26 @@ export function ExportScreen({
           >
             {github.linked ? (
               <div className="flex flex-col gap-2.5">
-                <p className="m-0 text-[13px] leading-relaxed text-text-dim">
+                <p className="m-0 text-[13px] leading-normal text-text-faint">
                   Linked:{' '}
                   <a className="text-accent" href={github.linked.url} target="_blank" rel="noreferrer">
                     {github.linked.owner}/{github.linked.repo}
                   </a>
                 </p>
-                <label className="flex flex-col gap-1 text-[11px] text-text-dim">
+                <label className={FIELD_LABEL}>
                   Commit message
                   <input
                     type="text"
-                    className="rounded-md border border-border bg-bg px-2.5 py-1.5 text-[13px] text-text placeholder:text-text-faint focus:border-accent focus:outline-none"
+                    className={FIELD}
                     placeholder="Update MotionForge scene"
                     value={commitMessage}
                     disabled={github.busy}
                     onChange={(event) => setCommitMessage(event.target.value)}
                   />
                 </label>
-                <button
+                <Button
+                  variant="primary"
                   type="button"
-                  className="btn btn-primary"
                   disabled={exportBusy || !canPushGithub}
                   onClick={() =>
                     void github.commit({
@@ -313,10 +315,10 @@ export function ExportScreen({
                   }
                 >
                   {github.busy ? 'Committing…' : `Commit ${githubModels.length} model${githubModels.length === 1 ? '' : 's'}`}
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="secondary"
                   type="button"
-                  className="btn btn-secondary"
                   disabled={github.busy}
                   onClick={() =>
                     void github.pull().then((result) => {
@@ -325,15 +327,15 @@ export function ExportScreen({
                   }
                 >
                   {github.busy ? 'Pulling…' : 'Pull from GitHub'}
-                </button>
-                <button type="button" className="btn btn-secondary" disabled={github.busy} onClick={github.unlink}>
+                </Button>
+                <Button variant="secondary" type="button" disabled={github.busy} onClick={github.unlink}>
                   Unlink repository
-                </button>
+                </Button>
                 {github.pullStatus && (
-                  <p className="m-0 text-[13px] leading-relaxed text-text-dim">{github.pullStatus}</p>
+                  <p className="m-0 text-[13px] leading-normal text-text-faint">{github.pullStatus}</p>
                 )}
                 {github.lastCommitUrl && (
-                  <p className="m-0 text-[13px] leading-relaxed text-text-dim">
+                  <p className="m-0 text-[13px] leading-normal text-text-faint">
                     Last commit:{' '}
                     <a className="text-accent" href={github.lastCommitUrl} target="_blank" rel="noreferrer">
                       view on GitHub
@@ -344,38 +346,40 @@ export function ExportScreen({
             ) : (
               <div className="flex flex-col gap-2.5">
                 <div className="grid grid-cols-2 gap-1.5" role="group" aria-label="Repository mode">
-                  <button
+                  <IconButton
                     type="button"
-                    className={github.mode === 'create' ? 'btn btn-icon active' : 'btn btn-icon'}
+                    className="px-3 py-2 text-[13px] font-semibold"
+                    active={github.mode === 'create'}
                     disabled={github.busy}
                     onClick={() => github.setMode('create')}
                   >
                     Create new
-                  </button>
-                  <button
+                  </IconButton>
+                  <IconButton
                     type="button"
-                    className={github.mode === 'existing' ? 'btn btn-icon active' : 'btn btn-icon'}
+                    className="px-3 py-2 text-[13px] font-semibold"
+                    active={github.mode === 'existing'}
                     disabled={github.busy}
                     onClick={() => github.setMode('existing')}
                   >
                     Use existing
-                  </button>
+                  </IconButton>
                 </div>
 
                 {github.mode === 'create' ? (
                   <>
-                    <label className="flex flex-col gap-1 text-[11px] text-text-dim">
+                    <label className={FIELD_LABEL}>
                       Repository name
                       <input
                         type="text"
-                        className="rounded-md border border-border bg-bg px-2.5 py-1.5 text-[13px] text-text placeholder:text-text-faint focus:border-accent focus:outline-none"
+                        className={FIELD}
                         placeholder="my-motionforge-scene"
                         value={repoName}
                         disabled={github.busy}
                         onChange={(event) => setRepoName(event.target.value)}
                       />
                     </label>
-                    <label className="flex flex-row items-center gap-2 text-[12px] text-text">
+                    <label className="flex flex-row items-center gap-2 text-[13px] text-text">
                       <input
                         type="checkbox"
                         checked={privateRepo}
@@ -384,9 +388,9 @@ export function ExportScreen({
                       />
                       Private repository
                     </label>
-                    <button
+                    <Button
+                      variant="primary"
                       type="button"
-                      className="btn btn-primary"
                       disabled={exportBusy || !repoName.trim() || !canPushGithub}
                       onClick={() =>
                         void github.createRepo({
@@ -399,24 +403,24 @@ export function ExportScreen({
                       }
                     >
                       {github.busy ? 'Creating…' : 'Create repository'}
-                    </button>
+                    </Button>
                   </>
                 ) : (
                   <>
-                    <label className="flex flex-col gap-1 text-[11px] text-text-dim">
+                    <label className={FIELD_LABEL}>
                       Repository
                       <input
                         type="text"
-                        className="rounded-md border border-border bg-bg px-2.5 py-1.5 text-[13px] text-text placeholder:text-text-faint focus:border-accent focus:outline-none"
+                        className={FIELD}
                         placeholder="owner/repo"
                         value={existingFullName}
                         disabled={github.busy}
                         onChange={(event) => setExistingFullName(event.target.value)}
                       />
                     </label>
-                    <button
+                    <Button
+                      variant="primary"
                       type="button"
-                      className="btn btn-primary"
                       disabled={exportBusy || !existingFullName.trim()}
                       onClick={() =>
                         void (async () => {
@@ -427,33 +431,33 @@ export function ExportScreen({
                       }
                     >
                       {github.busy ? 'Linking…' : 'Link repository'}
-                    </button>
+                    </Button>
                   </>
                 )}
               </div>
             )}
-            {github.error && <p className="m-0 text-[13px] leading-relaxed text-error">{github.error}</p>}
+            {github.error && <p className="m-0 text-[14px] leading-relaxed text-error">{github.error}</p>}
           </RequireAuth>
         </section>
-        <section className="flex flex-col gap-2.5 rounded-lg border border-border bg-bg-raised p-3" aria-label="Publish to Marketplace">
-          <h2 className="m-0 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-text-dim">
+        <section className={`flex flex-col gap-3 ${PANEL} p-4`} aria-label="Publish to Marketplace">
+          <h2 className={PANEL_HEADER}>
             Publish to Marketplace
           </h2>
-          <p className="m-0 text-[13px] leading-relaxed text-text-dim">
+          <p className="m-0 text-[13px] leading-normal text-text-faint">
             Share your creation with the community. Sign-in required.
           </p>
           <RequireAuth
             fallback={
               configured ? (
-                <button
+                <Button
+                  variant="secondary"
                   type="button"
-                  className="btn btn-primary"
                   onClick={() => void login({ screenHint: 'login' })}
                 >
                   Log in to publish
-                </button>
+                </Button>
               ) : (
-                <p className="m-0 text-[13px] leading-relaxed text-text-dim">
+                <p className="m-0 text-[13px] leading-normal text-text-faint">
                   Configure Auth0 (`VITE_AUTH0_*`) to enable publishing.
                 </p>
               )
@@ -462,7 +466,7 @@ export function ExportScreen({
             {code ? (
               <PublishForm code={code} blenderCode={blenderCode ?? ''} />
             ) : (
-              <p className="m-0 text-[13px] leading-relaxed text-text-dim">Generate a scene first to publish it.</p>
+              <p className="m-0 text-[13px] leading-normal text-text-faint">Generate a scene first to publish it.</p>
             )}
           </RequireAuth>
         </section>

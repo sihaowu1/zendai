@@ -80,7 +80,7 @@ export function ModelsLayersList({
 
   if (models.length === 0) {
     return (
-      <p className="m-0 text-[13px] leading-relaxed text-text-dim">
+      <p className="m-0 text-[13px] leading-normal text-text-faint">
         No models yet. Generate one from the chat above to see it listed here.
       </p>
     );
@@ -125,9 +125,12 @@ export function ModelsLayersList({
           return (
             <li
               key={model.id}
-              className={`group/model overflow-hidden rounded-md border bg-bg-raised ${
-                active || selected ? 'border-accent' : 'border-border'
-              } ${selected && !active ? 'bg-accent/5' : ''}`}
+              // Selection is a tint, not an outline. A blue ring around the
+              // active card made every list read as a row of alerts and left
+              // nothing louder for the primary action to be.
+              className={`group/model overflow-hidden rounded-lg border border-border ${
+                active || selected ? 'bg-bg-hover' : 'bg-bg-raised'
+              }`}
             >
               <div
                 className={`flex w-full items-center gap-2 px-2.5 py-2 ${
