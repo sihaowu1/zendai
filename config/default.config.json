@@ -9,7 +9,9 @@
   },
   "auth0": {
     "domain": "",
-    "audience": ""
+    "audience": "",
+    "mgmtClientId": "",
+    "mgmtClientSecret": ""
   },
   "blender": {
     "enabled": false,
