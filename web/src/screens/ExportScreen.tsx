@@ -75,6 +75,7 @@ export function ExportScreen({ models, activeModelId, code, tunables, onParamCha
           tunables={tunables}
           onParamChange={onParamChange}
           modelName={activeModel?.name ?? 'Model'}
+          enableClickFloater={false}
         />
       </div>
     </main>

@@ -214,6 +214,22 @@ export function useSceneProject() {
     setActiveModelId(id);
   }, []);
 
+  // Places a 1-second clip for `modelId` at the given whole second, dropped
+  // from the Materials list. Per the one-model-per-second invariant, any
+  // clip already occupying that second is replaced.
+  const addClipAtSecond = useCallback(
+    (modelId: string, second: number) => {
+      const model = models.find((m) => m.id === modelId);
+      if (!model) return;
+      const start = Math.max(0, Math.floor(second));
+      setClips((current) => [
+        ...current.filter((c) => !(start < c.start + c.duration && start + 1 > c.start)),
+        { id: makeId(), modelId, label: model.name, start, duration: 1 },
+      ].sort((a, b) => a.start - b.start));
+    },
+    [models],
+  );
+
   const exportCode = useCallback(
     () =>
       run('Exporting code…', async () => {
@@ -309,6 +325,7 @@ export function useSceneProject() {
     activeModelId,
     setActiveModel,
     clips,
+    addClipAtSecond,
     generate,
     modify,
     exportCode,

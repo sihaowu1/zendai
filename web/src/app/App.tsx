@@ -39,6 +39,7 @@ export function App() {
                 onParamChange={project.setParam}
                 mp4Job={project.mp4Job}
                 clips={project.clips}
+                onDropModel={project.addClipAtSecond}
                 chat={
                   <ChatPanel
                     busy={project.busy}
