@@ -3,7 +3,8 @@ import type { TunableParam } from '@motionforge/shared';
 import type { ParamChange } from '../controls/ControlsPanel';
 import { ResizeHandle } from '../layout/ResizeHandle';
 import { useResizable } from '../layout/useResizable';
-import { Timeline } from '../timeline/Timeline';
+import { Timeline, deriveTimelineTotal } from '../timeline/Timeline';
+import { useTimelinePlayback } from '../timeline/useTimelinePlayback';
 import type { Clip, Mp4JobState, SceneModel } from '../state/useSceneProject';
 import { VideoPreview } from '../video/VideoPreview';
 
@@ -48,6 +49,22 @@ export function VideoGenerationScreen({
   chat,
 }: VideoGenerationScreenProps) {
   const activeModel = models.find((m) => m.id === activeModelId);
+
+  // Single shared playhead: the Timeline transport controls it, and the
+  // preview reads it, so scrubbing/playing/pausing stay in lockstep.
+  const timelineClips = clips.map((c) => ({ id: c.id, label: c.label, start: c.start, duration: c.duration }));
+  const timelineTotal = deriveTimelineTotal(timelineClips);
+  const playback = useTimelinePlayback(timelineTotal);
+
+  // Which clip (and therefore which model's code) is under the playhead
+  // right now. Clips are assumed never to overlap — at most one model per
+  // timeline second — so the first match is the only match.
+  const activeClip = clips.find(
+    (c) => playback.currentTime >= c.start && playback.currentTime < c.start + c.duration,
+  );
+  const previewModel = activeClip ? models.find((m) => m.id === activeClip.modelId) : undefined;
+  const previewCode = previewModel?.code ?? code;
+  const previewTime = activeClip ? playback.currentTime - activeClip.start : playback.currentTime;
 
   const chatWidth = useResizable({
     direction: 'horizontal',
@@ -99,24 +116,18 @@ export function VideoGenerationScreen({
         <Pane title="Resulting Video" area="video" bodyStyle={styles.videoPaneBody}>
           <VideoPreview
             job={mp4Job}
-            code={code}
+            code={previewCode}
             tunables={tunables}
             onParamChange={onParamChange}
-            modelName={activeModel?.name ?? 'Model'}
+            modelName={previewModel?.name ?? activeModel?.name ?? 'Model'}
+            time={previewTime}
           />
         </Pane>
       </div>
       <ResizeHandle direction="vertical" onPointerDown={timelineHeight.startDragging} label="Resize timeline" />
       <div className="video-screen__timeline" style={styles.timeline}>
         <Pane title="Timeline" area="timeline">
-          <Timeline
-            clips={clips.map((c) => ({
-              id: c.id,
-              label: c.label,
-              start: c.start,
-              duration: c.duration,
-            }))}
-          />
+          <Timeline clips={timelineClips} totalDuration={timelineTotal} playback={playback} />
         </Pane>
       </div>
     </section>

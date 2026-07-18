@@ -22,6 +22,8 @@ export class SceneRuntime {
   private raf = 0;
   private startMs = performance.now();
   private frameErrorReported = false;
+  /** When set, `updateScene` is driven by this instead of the free-running wall clock (see `setTime`). */
+  private controlledTime: number | null = null;
   private raycaster = new THREE.Raycaster();
   private pointerDownPos: { x: number; y: number } | null = null;
 
@@ -46,6 +48,15 @@ export class SceneRuntime {
     this.module = await loadSceneModule(code);
     this.frameErrorReported = false;
     this.rebuild();
+  }
+
+  /**
+   * Hands the scene's `time` to the caller (e.g. a timeline playhead)
+   * instead of the internal wall clock — a fixed `time` freezes the scene on
+   * that exact frame, since `updateScene` must already be pure in `time`.
+   */
+  setTime(time: number): void {
+    this.controlledTime = time;
   }
 
   resize(width: number, height: number): void {
@@ -120,7 +131,7 @@ export class SceneRuntime {
           scene: this.scene,
           objects: this.objects,
           params: module.PARAMS,
-          time: (now - this.startMs) / 1000,
+          time: this.controlledTime !== null ? this.controlledTime : (now - this.startMs) / 1000,
         });
       } catch (err) {
         if (!this.frameErrorReported) {

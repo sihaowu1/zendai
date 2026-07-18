@@ -14,6 +14,8 @@ interface Props {
   modelName: string;
   /** Set false to hide the click-to-edit tunables floater (e.g. on the Export screen). Defaults to true. */
   enableClickFloater?: boolean;
+  /** Timeline playhead position (seconds), passed through to the live viewport. Omit for a free-running preview. */
+  time?: number;
 }
 
 /**
@@ -30,6 +32,7 @@ export function VideoPreview({
   onParamChange,
   modelName,
   enableClickFloater = true,
+  time,
 }: Props) {
   const [clickAnchor, setClickAnchor] = useState<{ x: number; y: number } | null>(null);
 
@@ -52,7 +55,7 @@ export function VideoPreview({
 
   return (
     <div style={styles.livePreview}>
-      <Viewport code={code} onModelClick={enableClickFloater ? setClickAnchor : undefined} />
+      <Viewport code={code} onModelClick={enableClickFloater ? setClickAnchor : undefined} time={time} />
       {job?.status === 'running' && (
         <div style={styles.liveBadge}>
           Rendering… {Math.round((job.progress ?? 0) * 100)}%

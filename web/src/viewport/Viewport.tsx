@@ -5,13 +5,19 @@ interface Props {
   code: string;
   /** Fired when the user clicks any rendered object (not empty space). */
   onModelClick?: (point: { x: number; y: number }) => void;
+  /**
+   * Seconds fed to `updateScene` on every frame. Omit for a free-running
+   * preview (Model screen); pass a timeline playhead to freeze/scrub the
+   * scene at an exact instant instead (Video/Export screens).
+   */
+  time?: number;
 }
 
 /**
  * The WebGL preview panel. Debounces code changes (typing, slider drags, AI
  * output) and hot-reloads them into the SceneRuntime.
  */
-export function Viewport({ code, onModelClick }: Props) {
+export function Viewport({ code, onModelClick, time }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const runtimeRef = useRef<SceneRuntime | null>(null);
@@ -47,6 +53,10 @@ export function Viewport({ code, onModelClick }: Props) {
     }, 250);
     return () => window.clearTimeout(handle);
   }, [code]);
+
+  useEffect(() => {
+    if (time !== undefined) runtimeRef.current?.setTime(time);
+  }, [time]);
 
   return (
     <div className="viewport" ref={containerRef}>

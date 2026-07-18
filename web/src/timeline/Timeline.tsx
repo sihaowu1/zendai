@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef } from 'react';
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
+import type { TimelinePlayback } from './useTimelinePlayback';
 
 /**
  * One clip on the timeline. `start` and `duration` are in seconds.
@@ -16,75 +17,46 @@ export interface TimelineClip {
   color?: string;
 }
 
-export interface TimelineProps {
-  clips: TimelineClip[];
-  /**
-   * Total timeline length in seconds. If omitted, it's derived from the
-   * furthest clip end (with a 10s floor so an empty timeline still has a
-   * ruler to scrub against) so the layout always fills the track.
-   */
-  totalDuration?: number;
-}
-
 /** Minimum length (seconds) shown for a timeline with no clips yet. */
 const EMPTY_TIMELINE_FLOOR = 10;
 
 /**
- * V1 timeline: single horizontal track with transport controls (play/pause,
- * step, skip-to-start/end) driving a playhead over it. The playhead runs on
- * a real-time clock — 1 timeline-second per wall-clock second — and is
- * independent of clip content, so scrubbing/playback works exactly the same
- * on a timeline with no clips yet as on one with rendered clips.
+ * Total timeline length in seconds: the parent's override, else the furthest
+ * clip end, else a 10s floor so an empty timeline still has a ruler to
+ * scrub against. Exported so callers can feed the same number into
+ * `useTimelinePlayback` that `Timeline` renders against.
  */
-export function Timeline({ clips, totalDuration }: TimelineProps) {
-  // Derive the visible duration from the clips unless the parent overrides it.
+export function deriveTimelineTotal(clips: TimelineClip[], totalDuration?: number): number {
   const derivedEnd = clips.reduce((max, c) => Math.max(max, c.start + c.duration), 0);
-  const total = Math.max(totalDuration ?? Math.max(derivedEnd, EMPTY_TIMELINE_FLOOR), 0.0001);
+  return Math.max(totalDuration ?? Math.max(derivedEnd, EMPTY_TIMELINE_FLOOR), 0.0001);
+}
 
-  const [currentTime, setCurrentTime] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const rafRef = useRef<number | null>(null);
-  const lastTsRef = useRef<number | null>(null);
+export interface TimelineProps {
+  clips: TimelineClip[];
+  /** Same value passed to `useTimelinePlayback` — see `deriveTimelineTotal`. */
+  totalDuration?: number;
+  /** Shared playhead state/controls from `useTimelinePlayback`. */
+  playback: TimelinePlayback;
+}
+
+/**
+ * V1 timeline: single horizontal track with transport controls (play/pause,
+ * step, skip-to-start/end) driving a playhead over it. Playback state is
+ * owned by the caller (`useTimelinePlayback`) and passed in as `playback` so
+ * other views — e.g. the video preview — can stay in lockstep with the same
+ * playhead instead of Timeline keeping a private clock.
+ */
+export function Timeline({ clips, totalDuration, playback }: TimelineProps) {
+  const total = deriveTimelineTotal(clips, totalDuration);
+  const { currentTime, isPlaying, seek, togglePlay, skipToStart, skipToEnd, stepBack, stepForward } = playback;
   const trackRef = useRef<HTMLDivElement>(null);
-
-  // Clamp the playhead whenever the timeline shrinks (e.g. totalDuration prop changes).
-  useEffect(() => {
-    setCurrentTime((t) => Math.min(t, total));
-  }, [total]);
-
-  useEffect(() => {
-    if (!isPlaying) {
-      lastTsRef.current = null;
-      return;
-    }
-    const step = (ts: number) => {
-      const last = lastTsRef.current;
-      lastTsRef.current = ts;
-      if (last !== null) {
-        const deltaSeconds = (ts - last) / 1000;
-        setCurrentTime((t) => {
-          const next = t + deltaSeconds;
-          if (next >= total) {
-            setIsPlaying(false);
-            return total;
-          }
-          return next;
-        });
-      }
-      rafRef.current = requestAnimationFrame(step);
-    };
-    rafRef.current = requestAnimationFrame(step);
-    return () => {
-      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
-    };
-  }, [isPlaying, total]);
 
   function seekToClientX(clientX: number) {
     const el = trackRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
     const fraction = clamp((clientX - rect.left) / rect.width, 0, 1);
-    setCurrentTime(fraction * total);
+    seek(fraction * total);
   }
 
   function handleScrubberPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
@@ -97,13 +69,6 @@ export function Timeline({ clips, totalDuration }: TimelineProps) {
     seekToClientX(event.clientX);
   }
 
-  function togglePlay() {
-    setIsPlaying((playing) => {
-      if (!playing && currentTime >= total) setCurrentTime(0);
-      return !playing;
-    });
-  }
-
   const playheadPct = (currentTime / total) * 100;
 
   return (
@@ -113,13 +78,10 @@ export function Timeline({ clips, totalDuration }: TimelineProps) {
         total={total}
         isPlaying={isPlaying}
         onTogglePlay={togglePlay}
-        onSkipToStart={() => setCurrentTime(0)}
-        onSkipToEnd={() => {
-          setIsPlaying(false);
-          setCurrentTime(total);
-        }}
-        onStepBack={() => setCurrentTime((t) => clamp(t - 1, 0, total))}
-        onStepForward={() => setCurrentTime((t) => clamp(t + 1, 0, total))}
+        onSkipToStart={skipToStart}
+        onSkipToEnd={skipToEnd}
+        onStepBack={stepBack}
+        onStepForward={stepForward}
       />
       <div
         ref={trackRef}
