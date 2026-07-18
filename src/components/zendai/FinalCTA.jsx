@@ -3,7 +3,7 @@ import { ArrowUpRight } from "lucide-react";
 
 export default function FinalCTA() {
   return (
-    <section id="cta" className="border-t hairline border-slate-200 bg-inkwell text-white">
+    <section id="cta" className="border-t hairline border-white/10 bg-inkwell text-white">
       <div className="mx-auto max-w-[1400px] px-6 lg:px-10 py-28 lg:py-40">
         <div className="max-w-3xl">
           <div className="flex items-center gap-2 mb-8">

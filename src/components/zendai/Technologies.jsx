@@ -54,29 +54,29 @@ const TECHS = [
 
 export default function Technologies() {
   return (
-    <section id="technology" className="border-t hairline border-slate-200">
+    <section id="technology" className="border-t hairline border-white/10">
       <div className="mx-auto max-w-[1400px] px-6 lg:px-10 py-24 lg:py-32">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 mb-14">
           <div className="lg:col-span-4">
-            <span className="font-mono-label"><span className="text-royal-blue">04</span> <span className="text-slate-steel">/ Technology</span></span>
+            <span className="font-mono-label"><span className="text-royal-blue">04</span> <span className="text-slate-400">/ Technology</span></span>
           </div>
           <div className="lg:col-span-8">
-            <h2 className="font-heading text-3xl sm:text-4xl lg:text-5xl font-bold tracking-[-0.03em] text-inkwell text-balance">
+            <h2 className="font-heading text-3xl sm:text-4xl lg:text-5xl font-bold tracking-[-0.03em] text-white text-balance">
               Built on professional-grade infrastructure.
             </h2>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 border-t border-l hairline border-slate-200">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 border-t border-l hairline border-white/10">
           {TECHS.map((t) => (
             <div
               key={t.name}
-              className="group flex flex-col items-center justify-center gap-3 border-r border-b hairline border-slate-200 py-12 transition-colors duration-300 hover:bg-[rgba(30,64,175,0.02)]"
+              className="group flex flex-col items-center justify-center gap-3 border-r border-b hairline border-white/10 py-12 transition-colors duration-300 hover:bg-white/[0.02]"
             >
-              <div className="text-inkwell transition-all duration-500 group-hover:text-royal-blue group-hover:-translate-y-1 group-hover:rotate-3">
+              <div className="text-white transition-all duration-500 group-hover:text-royal-blue group-hover:-translate-y-1 group-hover:rotate-3">
                 {t.glyph}
               </div>
-              <span className="font-mono-label text-slate-steel group-hover:text-inkwell transition-colors duration-300">{t.name}</span>
+              <span className="font-mono-label text-slate-400 group-hover:text-white transition-colors duration-300">{t.name}</span>
             </div>
           ))}
         </div>

@@ -9,7 +9,7 @@ import Footer from "@/components/zendai/Footer";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-white text-inkwell">
+    <div className="min-h-screen bg-inkwell text-white">
       <Nav />
       <main>
         <Hero />

@@ -15,17 +15,17 @@ export default function Nav() {
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         scrolled
-          ? "bg-white/70 backdrop-blur-md border-b hairline border-slate-200"
+          ? "bg-inkwell/80 backdrop-blur-md border-b hairline border-white/10"
           : "bg-transparent border-b hairline border-transparent"
       }`}
     >
       <div className="mx-auto max-w-[1400px] px-6 lg:px-10">
         <div className="flex h-16 items-center justify-between">
           <a href="#top" className="flex items-center gap-2.5 group">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-inkwell">
-              <Terminal className="h-4 w-4 text-white" strokeWidth={2.2} />
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-white">
+              <Terminal className="h-4 w-4 text-inkwell" strokeWidth={2.2} />
             </div>
-            <span className="font-heading text-lg font-bold tracking-tight text-inkwell">
+            <span className="font-heading text-lg font-bold tracking-tight text-white">
               Zendai
             </span>
             <span className="relative flex h-2 w-2">
@@ -43,7 +43,7 @@ export default function Nav() {
               <a
                 key={label}
                 href={href}
-                className="font-mono-label text-slate-steel transition-colors hover:text-inkwell"
+                className="font-mono-label text-slate-400 transition-colors hover:text-white"
               >
                 {label}
               </a>
@@ -53,13 +53,13 @@ export default function Nav() {
           <div className="flex items-center gap-3">
             <a
               href="/app"
-              className="hidden sm:inline-flex font-mono-label text-slate-steel transition-colors hover:text-inkwell"
+              className="hidden sm:inline-flex font-mono-label text-slate-400 transition-colors hover:text-white"
             >
               Sign in
             </a>
             <a
               href="/app"
-              className="inline-flex items-center justify-center rounded-md bg-inkwell px-4 py-2 text-sm font-medium text-white transition-all duration-300 hover:bg-royal-blue hover:rounded-xl"
+              className="inline-flex items-center justify-center rounded-md bg-royal-blue px-4 py-2 text-sm font-medium text-white transition-all duration-300 hover:bg-blue-500 hover:rounded-xl"
             >
               Get Started
             </a>
