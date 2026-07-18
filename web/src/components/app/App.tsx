@@ -93,8 +93,7 @@ function TopNav() {
   return (
     <div className="flex flex-shrink-0 items-center gap-5 border-b border-border bg-bg-panel px-4 py-2.5">
       <Link to="/" className="flex items-center gap-2 text-text no-underline hover:opacity-80">
-        <Logo size={26} />
-        <span className="text-[18px] font-semibold tracking-wide">Zendai</span>
+        <Logo size={32} />
       </Link>
       <nav className="flex gap-1" aria-label="Screens">
         <NavLink to="/model" className={navLinkClassName}>

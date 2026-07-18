@@ -28,12 +28,7 @@ export default function Nav() {
       <div className="mx-auto max-w-[1400px] px-6 lg:px-10">
         <div className="flex h-16 items-center justify-between">
           <a href="#top" className="flex items-center gap-2.5 group">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-white text-inkwell">
-              <Logo size={18} />
-            </div>
-            <span className="font-heading text-lg font-bold tracking-tight text-white">
-              Zendai
-            </span>
+            <Logo size={32} />
             <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full rounded-full bg-royal-blue opacity-60 animate-ping" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-royal-blue" />
