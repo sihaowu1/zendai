@@ -52,7 +52,7 @@ export async function fuseModels(
         `(e.g. human_head, flag_pole) so every buildScene return key is unique.\n` +
         `- Place subjects so they can interact on one ground plane (not far side-by-side islands).\n` +
         `- Merge PARAMS with unique names; keep @tunable annotations.\n` +
-        `- Compose CAMERA to frame all subjects.\n` +
+        `- Keep a simple CAMERA (preserve the first module's CAMERA, or a sensible default looking at the origin).\n` +
         `- No import/require/fetch. Host injects THREE.\n` +
         `- Do not invent time-based animation in this fuse step.\n\n` +
         `${moduleBlocks}\n\n` +
@@ -67,7 +67,7 @@ async function completeWithRetry(
   client: Anthropic,
   messages: Anthropic.MessageParam[],
 ): Promise<ModelCode> {
-  const system = `${loadSkill('threejs-modelling')}\n\n---\n\n${loadSkill('scene-blocking')}\n\n${loadSkill('camera-composition')}`;
+  const system = loadSkill('threejs-modelling');
   let errors: string[] = [];
   for (let attempt = 0; attempt < 2; attempt++) {
     const stream = client.messages.stream({

@@ -30,6 +30,11 @@ code blocks):
 Never return diffs or fragments. Never generate a brand-new model from scratch —
 always start from the module the user provided.
 
+**Hard host reject:** the host compares constructor counts against the baseline
+module. Inventing new `THREE.Mesh`, `THREE.*Geometry` / `*BufferGeometry`, or
+`THREE.*Material` constructors is rejected. Inserting `THREE.Group` pivots (and
+reparenting existing meshes under them) is allowed.
+
 ## Module contract (preserve + extend)
 
 Keep the existing modelling contract. The host injects `THREE`; the module must
@@ -39,8 +44,9 @@ Required exports:
 
 - `export const PARAMS = { ... }` — **preserve unchanged** (do not retune sizes
   or colors for the animation request).
-- `export const CAMERA = { ... }` — preserve if present (unless a composition
-  request explicitly asks to reframe).
+- `export const CAMERA = { ... }` — **preserve unchanged**. Framing is owned by
+  the user's live orbit in the editor; animation agents must never set or change
+  CAMERA.
 - `export function buildScene({ THREE, scene, params })` — **preserve geometry
   and materials**. Prefer animating existing return-map keys. Insert
   **pivot / hinge groups** only when the requested motion cannot work on the
@@ -109,8 +115,9 @@ satisfy them the first time:
 - **Hold, don't loop**: the pose at `t = duration` must equal the pose at any
   later time (the host samples `1.5·duration`). Always clamp `time` — never wrap
   with `%`.
-- **Stay on the floor**: the subject's lowest point must stay at `y >= 0`
-  throughout. Ground-contact math for a limb of length `L` swinging by angle `θ`
+- **Stay on the floor**: the subject's lowest point must stay near `y >= 0`
+  throughout (tiny dips under ~0.25 are tolerated; deeper sinks are rejected).
+  Ground-contact math for a limb of length `L` swinging by angle `θ`
   about a pivot at height `h`: its tip reaches lowest `y ≈ h - L·(1 - cos θ)` (or
   `h - L·sin θ` for a downward swing) — keep that `>= 0`, or raise the pivot, so
   nothing sinks through the ground plane.
@@ -118,7 +125,10 @@ satisfy them the first time:
   unboundedly; keep motion proportional to the model's own size.
 - **Own footprint**: you only see your own subject in multi-subject scenes — keep
   your motion within your own space so you don't drive through a neighbour you
-  can't see. Use the brief's timing to stagger interactions, not overlap.
+  can't see. Use the brief's timing to stagger interactions. Intentional contact
+  (grasp, pick-up, hand-off) is allowed when the brief asks for it.
+- **No new geometry**: the host rejects any net-new `THREE.Mesh`, `*Geometry`, or
+  `*Material` constructors vs the baseline module. Pivot `Group`s only.
 - **Deterministic**: no `Math.random()`, `Date`, or `performance.now()` — same
   `time` must always give the same pose.
 
@@ -162,7 +172,8 @@ offset, put the **pivot** (not only the mesh) in the `buildScene` return map,
 and target that pivot in `ANIMATION.tracks`. Prefer existing part names when
 possible so overlays match the base model.
 
-Do **not** invent extra meshes or materials just to animate. Preserve
+Do **not** invent extra meshes or materials just to animate. The host **rejects**
+new Mesh / Geometry / Material constructors relative to the baseline. Preserve
 unrelated parts and PARAMS. Do **not** redesign the model.
 
 ## User intent only
@@ -186,9 +197,9 @@ deterministically — you never see or edit the other subjects.
   interaction lines up only if all subjects use the same duration and time
   their keyframes to the same absolute seconds. Use the brief's timing cues
   (e.g. "start moving at 1s") as absolute `t` values in `[0, duration]`.
-- **Never set or change `CAMERA`.** Framing for the whole scene is handled by a
-  separate camera pass after the subjects are fused; a per-subject `CAMERA`
-  would be wrong for the combined scene and is ignored.
+- **Never set or change `CAMERA`.** Framing is the user's live orbit / existing
+  CAMERA export — there is no camera agent on the animate path. A per-subject
+  CAMERA would be ignored anyway.
 - Keep part keys as they are in this module. The host namespaces them per
   subject when fusing, so plain existing names (e.g. `rightArm`) are correct.
 

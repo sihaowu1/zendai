@@ -29,8 +29,7 @@ hack-the-6ix/
 ├── skills/             Claude Skills (also valid as Claude Code skills)
 │   ├── threejs-modelling/  generates/edits the Three.js model module
 │   ├── img2threejs/        reconstructs a model from a reference image
-│   ├── camera-composition/ shot type / blocking / CAMERA
-│   └── threejs-animation/  one-shot timeline animations
+│   └── threejs-animation/  one-shot timeline animations (module duplicate)
 ├── server/            Express API: AI agents, Remotion renderer, export
 │   └── src/
 │       ├── config/         merges config/default.config.json with env overrides
@@ -63,7 +62,7 @@ web (editor + controls + viewport)
    ▼
 server/routes  ─▶  server/agents (orchestrator)
    │                    │
-   │                    ├─▶ server/ai (Claude + modelling / animation / composition skills)
+   │                    ├─▶ server/ai (Claude + modelling / animation skills)
    │                    │        │ offline fallback ▶ server/agents/templateFallback (shared/sceneTemplate)
    │                    └─▶ server/remotion/renderer ─▶ remotion/ (bundle + render) ─▶ renders/*.mp4
    ▼
@@ -170,8 +169,8 @@ The client polls `GET /api/export/mp4/:jobId` for progress and gets back a
 
 ## Where the Claude Skills are
 
-Under `skills/` (`threejs-modelling`, `img2threejs`, `camera-composition`,
-`threejs-animation`). They are loaded verbatim as system prompts by
+Under `skills/` (`threejs-modelling`, `img2threejs`, `threejs-animation`).
+They are loaded verbatim as system prompts by
 `server/src/ai/skills.ts` and are also valid Claude Code skill files if you
 want to drive the same generation logic directly from a Claude Code session
 against this repo.

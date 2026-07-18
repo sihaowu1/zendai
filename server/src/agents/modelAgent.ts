@@ -160,8 +160,8 @@ async function completeWithRetry(
       max_tokens: config.ai.maxTokens,
       thinking: { type: 'adaptive' },
       system: hasImage
-        ? `${loadSkill('img2threejs')}\n\n${IMAGE_ANALYSIS_ADDENDUM}\n\n${loadSkill('scene-blocking')}\n\n${loadSkill('camera-composition')}`
-        : `${loadSkill('threejs-modelling')}\n\n${loadSkill('scene-blocking')}\n\n${loadSkill('camera-composition')}`,
+        ? `${loadSkill('img2threejs')}\n\n${IMAGE_ANALYSIS_ADDENDUM}`
+        : loadSkill('threejs-modelling'),
       messages,
     });
     const response = await stream.finalMessage();

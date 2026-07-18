@@ -94,12 +94,10 @@ export function parseAnimationTracks(code: string): AnimationTrack[] {
 /**
  * Pure, three-free static checks on a module's ANIMATION clip. Returns a list
  * of human-readable problems (empty means the clip's declared keyframes/duration
- * are internally consistent). This is the parse-level half of the animation
- * verifier — spatial checks (collisions, ground, motion) require executing the
- * module and live in the server's `verifyAnimation`.
+ * are internally consistent).
  *
- * `expectedDuration`, when provided, is the shared clip length the director
- * asked every subject to use; a mismatch is reported so the stitch stays in sync.
+ * `expectedDuration`, when provided, checks that ANIMATION.duration matches
+ * the requested clip length.
  */
 export function checkAnimationClipStatic(code: string, expectedDuration?: number): string[] {
   const issues: string[] = [];
@@ -168,4 +166,46 @@ export function parseAnimationClip(code: string): AnimationClip | undefined {
     duration,
     ...(tracks.length > 0 ? { tracks } : {}),
   };
+}
+
+/**
+ * Hard gate for animation agents: the output must not invent Mesh / Geometry /
+ * Material constructors that were not in the baseline module. Pivot `Group`s
+ * are allowed. Returns human-readable errors (empty = ok).
+ */
+export function assertAnimationPreservesGeometry(baseline: string, output: string): string[] {
+  const errors: string[] = [];
+  const baseCounts = countConstructorKinds(baseline);
+  const outCounts = countConstructorKinds(output);
+
+  for (const [kind, outCount] of outCounts) {
+    const baseCount = baseCounts.get(kind) ?? 0;
+    if (outCount > baseCount) {
+      errors.push(
+        `animation invented new THREE.${kind} (baseline had ${baseCount}, output has ${outCount}); ` +
+          'preserve existing geometry/materials — only new THREE.Group pivots are allowed',
+      );
+    }
+  }
+  return errors;
+}
+
+/** Count `new THREE.Mesh|…Geometry|…Material(` occurrences (Groups ignored). */
+function countConstructorKinds(code: string): Map<string, number> {
+  const counts = new Map<string, number>();
+  const re = /\bnew\s+THREE\.([A-Za-z0-9_]+)\s*\(/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(code)) !== null) {
+    const name = m[1];
+    if (name === 'Group' || name === 'Object3D') continue;
+    if (
+      name === 'Mesh' ||
+      name.endsWith('Geometry') ||
+      name.endsWith('BufferGeometry') ||
+      name.endsWith('Material')
+    ) {
+      counts.set(name, (counts.get(name) ?? 0) + 1);
+    }
+  }
+  return counts;
 }

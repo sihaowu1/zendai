@@ -58,23 +58,7 @@ generateRouter.post('/modify', async (req, res) => {
   }
 });
 
-function parseAnimateChildren(
-  body: Record<string, unknown>,
-): Array<{ id: string; name: string; code: string }> | undefined {
-  const raw = body?.children;
-  if (!Array.isArray(raw)) return undefined;
-  const children: Array<{ id: string; name: string; code: string }> = [];
-  for (const entry of raw) {
-    const id = String((entry as { id?: unknown })?.id ?? '').trim();
-    const name = String((entry as { name?: unknown })?.name ?? '').trim() || 'Model';
-    const code = String((entry as { code?: unknown })?.code ?? '');
-    if (!id || !code) continue;
-    children.push({ id, name, code });
-  }
-  return children.length >= 2 ? children : undefined;
-}
-
-// Prompt + current code → animation and/or composition (director-planned).
+// Prompt + current code → animated module duplicate (base model stays frozen).
 generateRouter.post('/animate', async (req, res) => {
   const prompt = String(req.body?.prompt ?? '').trim();
   const code = String(req.body?.code ?? '');
@@ -82,10 +66,8 @@ generateRouter.post('/animate', async (req, res) => {
     res.status(400).json({ error: 'prompt and code are required' });
     return;
   }
-  const aspectRatio = parseAspectRatio(req.body);
-  const children = parseAnimateChildren(req.body);
   try {
-    res.json(await animateModel(prompt, code, aspectRatio, children));
+    res.json(await animateModel(prompt, code));
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     logError('animate', message);

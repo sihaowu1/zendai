@@ -436,7 +436,7 @@ export function useSceneProject() {
   );
 
   /**
-   * Video-screen Generate: animate/compose the Materials-selected model.
+   * Video-screen Generate: animate the Materials-selected model.
    * Writes a duplicated animated module to `animation`; never mutates
    * the base `model.code` (Model-screen source stays frozen). Regenerating
    * replaces the single animation for that model.
@@ -455,13 +455,7 @@ export function useSceneProject() {
             : prompt;
 
         // Always animate from the pristine base module (including fused merges).
-        // For merges, also send each child's pristine module so the server can
-        // animate every subject in isolation, then re-fuse deterministically.
-        const children =
-          target.children && target.children.length >= 2
-            ? target.children.map((c) => ({ id: c.id, name: c.name, code: c.code }))
-            : undefined;
-        const result = await api.animate(focused, target.code, aspectRatio, children);
+        const result = await api.animate(focused, target.code);
         const duration = parseAnimationDuration(result.code) ?? 3;
         const name = parseAnimationName(result.code) ?? nameFromPrompt(prompt, 1);
         const parts = parseAnimationPartNames(result.code);
@@ -514,7 +508,7 @@ export function useSceneProject() {
           text: `Animated “${target.name}” (${duration.toFixed(duration % 1 === 0 ? 0 : 1)}s) — base model unchanged.`,
         });
       }),
-    [run, models, activeModelId, aspectRatio, selectedLayer],
+    [run, models, activeModelId, selectedLayer],
   );
 
   const setParam = useCallback(

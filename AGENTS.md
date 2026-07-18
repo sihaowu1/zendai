@@ -35,7 +35,7 @@ web (editor + controls + viewport)
    ▼
 server/routes  ─▶  server/agents (orchestrator)
    │                    │
-   │                    ├─▶ server/ai (Claude + threejs-modelling / img2threejs / camera-composition /
+   │                    ├─▶ server/ai (Claude + threejs-modelling / img2threejs /
    │                    │        threejs-animation skills)
    │                    │        │ offline fallback ▶ server/agents/templateFallback (shared/sceneTemplate)
    │                    └─▶ server/remotion/renderer ─▶ remotion/ (bundle + render) ─▶ renders/*.mp4
@@ -52,7 +52,7 @@ server/export (code ZIP via shared templates, MP4 job polling)
   - `config/` merges `config/default.config.json` with `.env` overrides.
   - `ai/` — Anthropic client, skill loader, fenced-code-block extraction from model output.
   - `agents/` — `orchestrator.ts` (entry point for generate/modify/animate), `modelAgent.ts`,
-    `animationAgent.ts` (intent-routed animation and/or camera-composition), `fuseAgent.ts`
+    `animationAgent.ts` (single agent: adds ANIMATION to a module duplicate), `fuseAgent.ts`
     (legacy AI fuse; client merges are deterministic co-view), `templateFallback.ts` (offline).
   - `remotion/` — bundles and renders the Remotion project to MP4.
   - `export/` — code (ZIP) and MP4 export flows; reuses `shared` templates, doesn't duplicate them.
@@ -92,11 +92,9 @@ Every generated model follows the Three.js modelling contract (see
 Claude Skills that drive this: `skills/threejs-modelling/SKILL.md` (model generation/modification),
 `skills/img2threejs/SKILL.md` (reconstructs a model from an attached reference image via component
 decomposition, used instead of `threejs-modelling` when an image is present),
-`skills/camera-composition/SKILL.md` (shot type / blocking / `CAMERA` — used by model generation
-and by the video agent when the prompt is framing-focused or a “big” scene),
-`skills/threejs-animation/SKILL.md` (one-shot timeline animations; video agent classifies
-prompt → animation / composition / both). MP4 fps/duration/resolution come from the export UI
-(and config defaults), not an AI skill. Merges build one deterministic fused module
+`skills/threejs-animation/SKILL.md` (one-shot timeline animations — singular video agent adds
+`ANIMATION` to a duplicate of the base model module). MP4 fps/duration/resolution come from the
+export UI (and config defaults), not an AI skill. Merges build one deterministic fused module
 (`shared/fuseModules`) on a shared ground plane — selectable and animatable like any other
 model. Child source is snapshotted into the merge (`children`); placement uses per-child
 offset PARAMS.

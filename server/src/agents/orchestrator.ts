@@ -42,12 +42,7 @@ export async function modifyModel(
   return { ...result, tunables: parseTunables(result.code), source: 'model' };
 }
 
-export async function animateModel(
-  prompt: string,
-  code: string,
-  aspectRatio?: AspectRatio,
-  children?: animationAgent.AnimateChild[],
-): Promise<GenerationResult> {
+export async function animateModel(prompt: string, code: string): Promise<GenerationResult> {
   const client = getAnthropicClient();
   if (!client) {
     throw new Error(
@@ -55,7 +50,7 @@ export async function animateModel(
         'You can still edit the code directly in the editor.',
     );
   }
-  const result = await animationAgent.animateModel(client, prompt, code, { aspectRatio, children });
+  const result = await animationAgent.animateModel(client, prompt, code);
   return { ...result, tunables: parseTunables(result.code), source: 'model' };
 }
 
