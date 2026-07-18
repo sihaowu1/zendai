@@ -150,12 +150,39 @@ function resolveModelForAnimation(
   return pick;
 }
 
+const MODELS_STORAGE_KEY = 'motionforge:models';
+
+function loadPersistedModels(): SceneModel[] {
+  try {
+    const raw = localStorage.getItem(MODELS_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as SceneModel[];
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch { /* ignore corrupt data */ }
+  return [makeDefaultModel()];
+}
+
+function persistModels(models: SceneModel[]): void {
+  try {
+    // Don't persist imported asset URLs (blob: URLs are session-only)
+    const serializable = models.map(({ assetUrl, ...rest }) => rest);
+    localStorage.setItem(MODELS_STORAGE_KEY, JSON.stringify(serializable));
+  } catch { /* storage full or unavailable */ }
+}
+
 export function useSceneProject() {
   // A default model is seeded so the app has valid code before the first generation.
-  const [models, setModels] = useState<SceneModel[]>(() => [makeDefaultModel()]);
-  const [activeModelId, setActiveModelId] = useState<string>(DEFAULT_MODEL_ID);
+  const [models, setModels] = useState<SceneModel[]>(loadPersistedModels);
+  const [activeModelId, setActiveModelId] = useState<string>(() => {
+    const persisted = loadPersistedModels();
+    return persisted[0]?.id ?? DEFAULT_MODEL_ID;
+  });
   /** Shift-click multi-select for building a merge; always includes the active id when non-empty. */
-  const [selectedModelIds, setSelectedModelIds] = useState<string[]>([DEFAULT_MODEL_ID]);
+  const [selectedModelIds, setSelectedModelIds] = useState<string[]>(() => {
+    const persisted = loadPersistedModels();
+    return [persisted[0]?.id ?? DEFAULT_MODEL_ID];
+  });
   const [clips, setClips] = useState<Clip[]>([]);
   const [clipboardClip, setClipboardClip] = useState<Clip | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -176,6 +203,11 @@ export function useSceneProject() {
     [models, activeModelId],
   );
   const code = activeModel.code;
+
+  // Persist models to localStorage on every change
+  useEffect(() => {
+    persistModels(models);
+  }, [models]);
 
   /** Scene modules the Model-screen viewport should co-render (one entry, or several for a merge). */
   const viewportScenes = useMemo(
@@ -444,6 +476,21 @@ export function useSceneProject() {
     );
   }, []);
 
+  /** Removes an entire model from the project. */
+  const deleteModel = useCallback((modelId: string) => {
+    setModels((current) => {
+      const next = current.filter((m) => m.id !== modelId);
+      const cleaned = next.map((m) =>
+        m.childIds?.includes(modelId)
+          ? { ...m, childIds: m.childIds.filter((id) => id !== modelId) }
+          : m,
+      );
+      if (cleaned.length === 0) return [makeDefaultModel()];
+      return cleaned;
+    });
+    setSelectedModelIds((ids) => ids.filter((id) => id !== modelId));
+  }, []);
+
   /**
    * Creates a co-view merge from the current multi-selection. Children remain
    * separate models; the new row only groups them for side-by-side viewing.
@@ -692,6 +739,7 @@ export function useSceneProject() {
     renameModel,
     renameModelLayer,
     deleteModelLayer,
+    deleteModel,
     viewportScenes,
     clips,
     addClipAtSecond,

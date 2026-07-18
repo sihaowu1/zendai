@@ -24,14 +24,6 @@ interface Props {
  *   | Models & Layers  |   (full right column)     |
  *   | (bottom-left)    |                           |
  *   +------------------+---------------------------+
- *
- * The left column is chat (scrollback, drives generate/modify) over the
- * Models & Layers list; both read/write `useSceneProject`, which is lifted
- * to `App` so this stays in sync with the Video screen's Materials pane.
- * Clicking a model row activates it (for the viewport). Shift-click adds to a
- * multi-select; Merge Selected places those models side-by-side on one plane
- * (not constrained). The tunable controls floater opens from clicking the
- * model *in the viewport* itself (a raycast hit on the rendered object).
  */
 export function ModelGenerationScreen({ project }: Props) {
   const [clickAnchor, setClickAnchor] = useState<{ x: number; y: number } | null>(null);
@@ -53,8 +45,6 @@ export function ModelGenerationScreen({ project }: Props) {
     storageKey: 'motionforge:model-screen:chat-height',
   });
 
-  // Selecting a different model (from the list) invalidates whatever was
-  // anchored, since it may no longer correspond to what's on screen.
   useEffect(() => {
     setClickAnchor(null);
   }, [project.activeModelId]);
@@ -116,6 +106,7 @@ export function ModelGenerationScreen({ project }: Props) {
               onRenameModel={project.renameModel}
               onRenameLayer={project.renameModelLayer}
               onDeleteLayer={project.deleteModelLayer}
+              onDeleteModel={project.deleteModel}
             />
           </div>
         </section>
