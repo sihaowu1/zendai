@@ -257,7 +257,7 @@ const styles = {
     display: 'grid',
     gridTemplateRows: '1fr auto',
     gap: 0,
-    padding: 10,
+    padding: 0,
     minHeight: 0,
     height: '100%',
     background: 'var(--bg)',
@@ -279,8 +279,6 @@ const styles = {
     minHeight: 0,
     flex: 1,
     background: 'var(--bg-panel)',
-    border: '1px solid var(--border)',
-    borderRadius: 6,
     overflow: 'hidden',
   },
   paneHeader: {
