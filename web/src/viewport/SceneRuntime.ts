@@ -12,6 +12,12 @@ const gltfLoader = new GLTFLoader();
  * itself: an empty group is returned immediately (so `rebuild`'s
  * before/after diff picks it up), and the parsed glTF scene is appended into
  * it once loading resolves.
+ *
+ * AI-generated modules always add their own key/ambient lights (see
+ * `sceneTemplate.ts`); an imported glTF has none of that, and the viewport's
+ * optional "fill lights" helper defaults to off, so without a light rig of
+ * its own the model renders solid black. A fixed rig is added here so an
+ * import is visible without the user having to discover that toggle.
  */
 function createImportedModule(assetUrl: string): SceneModule {
   return {
@@ -19,10 +25,20 @@ function createImportedModule(assetUrl: string): SceneModule {
     buildScene(ctx) {
       const scene = ctx.scene as THREE.Scene;
       const root = new THREE.Group();
+      root.add(new THREE.AmbientLight(0xffffff, 0.6));
+      const keyLight = new THREE.DirectionalLight(0xffffff, 1.2);
+      keyLight.position.set(4, 6, 5);
+      root.add(keyLight);
+      const fillLight = new THREE.DirectionalLight(0xffffff, 0.5);
+      fillLight.position.set(-4, 2, -3);
+      root.add(fillLight);
       scene.add(root);
       gltfLoader.load(
         assetUrl,
-        (gltf) => root.add(gltf.scene),
+        (gltf) => {
+          normalizeImportedScale(gltf.scene);
+          root.add(gltf.scene);
+        },
         undefined,
         (err) => console.error('Failed to load imported model', err),
       );
@@ -30,6 +46,33 @@ function createImportedModule(assetUrl: string): SceneModule {
     },
     updateScene() {},
   };
+}
+
+/** Target height (world units) an imported glTF is normalized to — matches the rough scale generated scene templates use, which the default camera/home-position is framed for. */
+const IMPORTED_TARGET_HEIGHT = 2;
+
+/**
+ * Blender/glTF exports come in at whatever scale their source scene used
+ * (millimeters, meters, arbitrary units), which puts them wildly out of frame
+ * of the default camera — anywhere from a barely-visible speck to a giant
+ * shell the camera starts out inside of (indistinguishable from "just black").
+ * Rescaling to a fixed target height and grounding it at y=0 lands every
+ * import in the same neighborhood the default camera already frames.
+ */
+function normalizeImportedScale(object: THREE.Object3D): void {
+  const box = new THREE.Box3().setFromObject(object);
+  if (box.isEmpty()) return;
+  const size = box.getSize(new THREE.Vector3());
+  const maxDim = Math.max(size.x, size.y, size.z);
+  if (maxDim > 0 && Number.isFinite(maxDim)) {
+    const scale = IMPORTED_TARGET_HEIGHT / maxDim;
+    object.scale.setScalar(scale);
+  }
+  const scaledBox = new THREE.Box3().setFromObject(object);
+  const center = scaledBox.getCenter(new THREE.Vector3());
+  object.position.x -= center.x;
+  object.position.z -= center.z;
+  object.position.y -= scaledBox.min.y;
 }
 
 /** A clicked object's position (units), left/right yaw (`angle`, Y-axis) and up/down pitch (`pitch`, X-axis), both in degrees. */
