@@ -33,6 +33,30 @@ export interface CameraSpec {
   fov?: number;
 }
 
+/** One keyframe on an animation track (`t` is seconds, `v` is the sampled value). */
+export interface AnimationKeyframe {
+  t: number;
+  v: number;
+}
+
+/** A single channel track targeting a named part from the buildScene return map. */
+export interface AnimationTrack {
+  part: string;
+  channel: 'rotation' | 'position' | 'scale';
+  axis?: 'x' | 'y' | 'z';
+  keyframes: AnimationKeyframe[];
+}
+
+/**
+ * Optional one-shot clip exported as ANIMATION. Duration is playout length in
+ * seconds; after it ends, updateScene should hold the final pose (no loop).
+ */
+export interface AnimationClip {
+  name: string;
+  duration: number;
+  tracks?: AnimationTrack[];
+}
+
 /** Context passed to buildScene(). THREE/scene are host objects. */
 export interface BuildContext {
   THREE: unknown;
@@ -50,8 +74,16 @@ export interface UpdateContext extends BuildContext {
 export interface SceneModule {
   PARAMS: Record<string, unknown>;
   CAMERA?: CameraSpec;
+  /** Present on modules produced by the animation skill. */
+  ANIMATION?: AnimationClip;
   buildScene(ctx: BuildContext): unknown;
   updateScene(ctx: UpdateContext): void;
+}
+
+/** An optional reference image sent alongside a prompt for image-to-scene generation. */
+export interface ReferenceImage {
+  mediaType: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
+  base64: string;
 }
 
 /** Settings the Remotion pipeline uses to render an MP4. */

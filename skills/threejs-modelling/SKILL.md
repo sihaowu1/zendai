@@ -1,25 +1,21 @@
 ---
-name: scene-generation
-description: Generate and modify parametric 3D models as code. Produces a component-based Three.js scene module with tunable, annotated parameters plus a matching Blender Python script from a natural-language prompt. Use whenever creating or editing 3D models or scenes in Zendai. Do not invent animations — modelling only.
+name: threejs-modelling
+description: Generate and modify static, component-based Three.js models as code with named parts and custom size tunables. Use for Zendai modelling — no baked animations.
 ---
 
-# 3D Model Generation Skill
+# Three.js Modelling Skill
 
-You generate **static, component-based 3D models as code** — never as images or
-via a video-generation service, and **never with baked animations**. Motion is
-added later by a separate step; this skill only builds poseable structure.
-
-Every model is expressed twice, from the same design: once as a Three.js/WebGL
-scene module (rendered live in the editor and by the Remotion MP4 pipeline) and
-once as a Blender Python script (executed in Blender through MCP).
+You generate **static, component-based 3D models as Three.js code** — never as
+images, never via a video-generation service, and **never with baked
+animations**. Motion is added later; this skill only builds poseable structure
+the user can tune with sliders.
 
 ## Response format
 
-Return exactly two fenced code blocks, in this order (brief prose around them
-is fine, no other code blocks):
+Return exactly one fenced code block (brief prose around it is fine, no other
+code blocks):
 
 1. A ` ```javascript ` block — the Three.js scene module (`scene.module.js`).
-2. A ` ```python ` block — the Blender script (`scene.blender.py`).
 
 ## Three.js scene module contract
 
@@ -38,14 +34,13 @@ be completely self-contained:
   - `export function updateScene({ THREE, scene, objects, params, time })` —
     **applies PARAMS only** (scales, colors, visibility, optional style index).
     May ignore `time`. Must **not** animate from `time`.
-- `updateScene` must stay a **pure function of its inputs**: the same
-  `params` (and `time`, if used later) must always produce the same pose. No
-  `Math.random()` (inline a seeded PRNG if you need noise), no `Date`, no
-  accumulating state between calls. This is required because the Remotion
-  renderer draws frames independently and out of order.
+- `updateScene` must stay a **pure function of its inputs**: the same `params`
+  must always produce the same pose. No `Math.random()` (inline a seeded PRNG
+  if you need noise), no `Date`, no accumulating state between calls.
 - **No baked animations.** Do not invent spin, bob, walk, idle, or story cycles.
-  Do not drive `rotation`/`position` from `time`. If the user asks for animation,
-  still return a static component model and note that animation comes later.
+  Do not drive `rotation`/`position` from `time`. If the user asks for
+  animation, still return a static component model and note that animation
+  comes later.
 - Keep geometry modest (under ~50k triangles). Use `MeshStandardMaterial` and
   include at least one directional/point light plus a soft ambient light.
 - Read every visual constant through `params.<name>` — never duplicate a value
@@ -112,33 +107,14 @@ Rules:
 - 6–14 tunables is the sweet spot; every one must actually affect the model.
 - Favor per-part size/proportion params; avoid motion params (`spinSpeed`,
   `bobHeight`, etc.).
-
-## Blender script contract
-
-- Pure `bpy` plus the Python standard library (`math`). No external add-ons,
-  no file I/O, no network access.
-- Start with a `PARAMS = { ... }` dict mirroring the Three.js PARAMS
-  (snake_case keys), so the two representations stay tunable in parallel.
-- Clear the default scene objects first, then build the **same named parts**:
-  meshes, Principled BSDF materials, lights, and a camera.
-- **No keyframing.** Do not define `animate()`, do not insert keyframes, and do
-  not include `fps` / `duration_seconds` in PARAMS. The script builds a static
-  posed model only.
-- The script must run as-is via `execute_blender_code` or Blender's Text
-  Editor, and must end with a short `print(...)` confirming what was built.
+- When the user asks for a custom slider (e.g. “leg size”, “head size”), add
+  a matching `@tunable` number and wire it to that component in `updateScene`.
 
 ## Modify mode
 
 When you are given the current module code plus a change request, return the
-**complete updated** blocks (never diffs or fragments). Preserve existing
-parameter names, values, and named parts unless the request changes them. If the
-user asks to swap a part or add variants, update that component (and add style
-tunables if needed) without tearing down unrelated parts.
-
-## Blender agent mode (MCP tools available)
-
-When the `execute_blender_code`, `get_scene_info`, and `render_frame` tools
-are available, work iteratively against the live Blender instance: inspect the
-scene first, execute focused chunks of Python (each under ~100 lines), read
-the tool output, and fix any errors you caused before finishing. End with a
-one-paragraph summary of what you built or changed. Still no baked animation.
+**complete updated** ` ```javascript ` block (never diffs or fragments).
+Preserve existing parameter names, values, and named parts unless the request
+changes them. If the user asks to swap a part or add variants, update that
+component (and add style tunables if needed) without tearing down unrelated
+parts. Do not add time-based animation.

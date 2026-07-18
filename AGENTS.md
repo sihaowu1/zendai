@@ -35,7 +35,8 @@ web (editor + controls + viewport)
    ▼
 server/routes  ─▶  server/agents (orchestrator)
    │                    │
-   │                    ├─▶ server/ai (Claude + scene-generation / camera-composition / remotion-mp4 skills)
+   │                    ├─▶ server/ai (Claude + scene-generation / img2threejs / camera-composition /
+   │                    │        threejs-animation / remotion-mp4 skills)
    │                    │        │ offline fallback ▶ server/agents/templateFallback (shared/sceneTemplate)
    │                    ├─▶ server/mcp (Blender MCP client) ─▶ blender/mcp/server.py ─▶ blender/addon.py (in Blender)
    │                    └─▶ server/remotion/renderer ─▶ remotion/ (bundle + render) ─▶ renders/*.mp4
@@ -81,27 +82,30 @@ server/export (code ZIP via shared templates, MP4 job polling)
 
 ## The scene-module contract
 
-Every generated scene is expressed twice from the same design (see
-`skills/scene-generation/SKILL.md` for the full generation contract used by the AI agent):
+Every generated model follows the Three.js modelling contract (see
+`skills/scene-generation/SKILL.md`):
 
 - **Three.js module** (`scene.module.js`): no `import`/`require`/`fetch` — the host injects
   `THREE`. Must export `PARAMS`, optional `CAMERA`, `buildScene({ THREE, scene, params })`, and
-  `updateScene({ THREE, scene, objects, params, time })`. `updateScene` must be a pure function
-  of `time` (no `Math.random()`, `Date`, or accumulated state) because Remotion renders frames
-  independently and out of order.
-- **Blender script** (`scene.blender.py`): pure `bpy` + Python stdlib, `PARAMS` dict in
-  snake_case mirroring the JS side, keyframed to match `updateScene`.
+  `updateScene({ THREE, scene, objects, params, time })`. Modelling produces **static
+  component-based** figures: `buildScene` returns a named object map of parts (e.g. `head`,
+  `torso`, `leftArm`), and `updateScene` applies PARAMS (sizes, colors) only — **no baked
+  time-based animation**. It must stay pure (no `Math.random()`, `Date`, or accumulated state)
+  because Remotion renders frames independently and out of order.
 - **Tunables**: every user-adjustable value lives in `PARAMS` with a `@tunable` JSDoc annotation
   (`@min`/`@max`/`@step` for sliders, booleans → switches, `'#rrggbb'` strings → color pickers).
-  `shared/src/tunables.ts` is the single parser/patcher for this — controls patch the PARAMS
-  block directly rather than re-serializing the whole module.
+  Prefer per-part size params (`headSize`, `legLength`, …). `shared/src/tunables.ts` is the
+  single parser/patcher for this — controls patch the PARAMS block directly rather than
+  re-serializing the whole module.
 
 Claude Skills that drive this: `skills/scene-generation/SKILL.md` (scene + Blender script
-generation/modification), `skills/camera-composition/SKILL.md` (translates a prompt's implied
-shot type and spatial layout into concrete object placement and `CAMERA` position/lookAt/fov —
-loaded alongside `scene-generation` in both `sceneAgent.ts` and `blenderAgent.ts`), and
-`skills/remotion-mp4/SKILL.md` (fps/duration/resolution planning for a render, invoked before an
-MP4 export).
+generation/modification), `skills/img2threejs/SKILL.md` (reconstructs a model from an attached
+reference image via component decomposition, used instead of `scene-generation` when an image is
+present), `skills/camera-composition/SKILL.md` (translates a prompt's implied shot type and
+spatial layout into concrete object placement and `CAMERA` position/lookAt/fov — loaded alongside
+`scene-generation`/`img2threejs` in `sceneAgent.ts` and `blenderAgent.ts`), `skills/threejs-animation/SKILL.md`
+(adds one-shot timeline animations to an existing model), and `skills/remotion-mp4/SKILL.md`
+(fps/duration/resolution planning for a render, invoked before an MP4 export).
 
 ## Config
 

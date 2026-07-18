@@ -4,9 +4,12 @@ import {
   DEFAULT_ASPECT_RATIO,
   DEFAULT_BLENDER_CODE,
   DEFAULT_SCENE_CODE,
+  deleteLayer as deleteLayerInCode,
   parseTunables,
   patchParam,
+  renameLayer as renameLayerInCode,
   type AspectRatio,
+  type ReferenceImage,
   type RenderSettings,
 } from '@motionforge/shared';
 import * as api from '../api/client';
@@ -48,6 +51,13 @@ export interface SceneModel {
   code: string;
   blenderCode: string;
   createdAt: number;
+  /**
+   * When set, this row is a co-view merge of other models. Children stay
+   * independent (not constrained); the viewport places them side-by-side on
+   * the same ground plane. `code`/`blenderCode` mirror the first child so
+   * export/modify/tunables still have a primary target.
+   */
+  childIds?: string[];
 }
 
 /** A rendered scene placed on the Video screen's timeline. */
@@ -63,6 +73,16 @@ export interface Clip {
 
 const DEFAULT_MODEL_ID = 'default';
 
+function makeDefaultModel(): SceneModel {
+  return {
+    id: DEFAULT_MODEL_ID,
+    name: 'Default model',
+    code: DEFAULT_SCENE_CODE,
+    blenderCode: DEFAULT_BLENDER_CODE,
+    createdAt: Date.now(),
+  };
+}
+
 function makeId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
@@ -75,18 +95,46 @@ function nameFromPrompt(prompt: string, fallbackIndex: number): string {
   return first.length > 42 ? `${first.slice(0, 42)}…` : first;
 }
 
+/** Read `ANIMATION.duration` from a scene module when present. */
+function parseAnimationDuration(code: string): number | undefined {
+  const match = code.match(
+    /export\s+const\s+ANIMATION\s*=\s*\{[\s\S]*?\bduration\s*:\s*([0-9]*\.?[0-9]+)/,
+  );
+  if (!match) return undefined;
+  const duration = Number(match[1]);
+  return Number.isFinite(duration) && duration > 0 ? duration : undefined;
+}
+
+/**
+ * Pick which model to animate: a model whose name appears in the prompt
+ * (longest match wins), else the active/selected model. Merge rows resolve
+ * to their first child so animation targets a real scene module.
+ */
+function resolveModelForAnimation(
+  prompt: string,
+  models: SceneModel[],
+  activeModelId: string,
+): SceneModel | undefined {
+  const lower = prompt.toLowerCase();
+  const named = [...models]
+    .filter((m) => m.name.trim().length > 0)
+    .sort((a, b) => b.name.length - a.name.length)
+    .find((m) => lower.includes(m.name.toLowerCase()));
+
+  const pick = named ?? models.find((m) => m.id === activeModelId) ?? models[0];
+  if (!pick) return undefined;
+  if (pick.childIds?.length) {
+    return models.find((m) => m.id === pick.childIds![0]) ?? pick;
+  }
+  return pick;
+}
+
 export function useSceneProject() {
   // A default model is seeded so the app has valid code before the first generation.
-  const [models, setModels] = useState<SceneModel[]>(() => [
-    {
-      id: DEFAULT_MODEL_ID,
-      name: 'Default scene',
-      code: DEFAULT_SCENE_CODE,
-      blenderCode: DEFAULT_BLENDER_CODE,
-      createdAt: Date.now(),
-    },
-  ]);
+  const [models, setModels] = useState<SceneModel[]>(() => [makeDefaultModel()]);
   const [activeModelId, setActiveModelId] = useState<string>(DEFAULT_MODEL_ID);
+  /** Shift-click multi-select for building a merge; always includes the active id when non-empty. */
+  const [selectedModelIds, setSelectedModelIds] = useState<string[]>([DEFAULT_MODEL_ID]);
   const [clips, setClips] = useState<Clip[]>([]);
   const [clipboardClip, setClipboardClip] = useState<Clip | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -109,6 +157,12 @@ export function useSceneProject() {
   );
   const code = activeModel.code;
   const blenderCode = activeModel.blenderCode;
+
+  /** Scene modules the Model-screen viewport should co-render (one entry, or several for a merge). */
+  const viewportScenes = useMemo(
+    () => resolveViewportScenes(activeModel, models),
+    [activeModel, models],
+  );
 
   const tunables = useMemo(() => {
     try {
@@ -137,13 +191,13 @@ export function useSceneProject() {
     [clips, playback.currentTime],
   );
   const previewModel = activeClip ? models.find((m) => m.id === activeClip.modelId) : undefined;
-  const previewCode = previewModel?.code;
+  const previewScenes = useMemo(
+    () => (previewModel ? resolveViewportScenes(previewModel, models) : []),
+    [previewModel, models],
+  );
+  const previewCode = previewScenes[0]?.code ?? previewModel?.code;
   const previewTime = activeClip ? playback.currentTime - activeClip.start : playback.currentTime;
   const previewModelName = previewModel?.name ?? activeModel.name;
-
-  useEffect(() => {
-    api.getBlenderStatus().then(setBlenderStatus).catch(() => setBlenderStatus(null));
-  }, []);
 
   useEffect(
     () => () => {
@@ -190,9 +244,9 @@ export function useSceneProject() {
   );
 
   const generate = useCallback(
-    (prompt: string) =>
-      run('Generating scene…', async () => {
-        const result = await api.generate(prompt);
+    (prompt: string, image?: ReferenceImage) =>
+      run('Generating model…', async () => {
+        const result = await api.generate(prompt, image);
         const id = makeId();
         setModels((current) => [
           ...current,
@@ -205,21 +259,22 @@ export function useSceneProject() {
           },
         ]);
         setActiveModelId(id);
+        setSelectedModelIds([id]);
         setStatus({
           kind: 'info',
           text:
             result.source === 'template'
               ? 'Generated with the offline template (set OPENROUTER_API_KEY for AI generation).'
-              : 'Scene generated by the AI agent.',
+              : 'Model generated by the AI agent.',
         });
       }),
     [run],
   );
 
   const modify = useCallback(
-    (prompt: string) =>
-      run('Modifying scene…', async () => {
-        const result = await api.modify(prompt, code, blenderCode);
+    (prompt: string, image?: ReferenceImage) =>
+      run('Modifying model…', async () => {
+        const result = await api.modify(prompt, code, blenderCode, image);
         setModels((current) =>
           current.map((m) =>
             m.id === activeModelId
@@ -231,9 +286,61 @@ export function useSceneProject() {
               : m,
           ),
         );
-        setStatus({ kind: 'info', text: 'Scene modified by the AI agent.' });
+        setStatus({ kind: 'info', text: 'Model modified by the AI agent.' });
       }),
     [run, code, blenderCode, activeModelId],
+  );
+
+  /**
+   * Video-screen Generate: run the animation skill against the model named
+   * in the prompt, or the active selection if none is named.
+   */
+  const animate = useCallback(
+    (prompt: string) =>
+      run('Animating model…', async () => {
+        const target = resolveModelForAnimation(prompt, models, activeModelId);
+        if (!target) {
+          throw new Error('No model available to animate. Generate a model on the Model screen first.');
+        }
+        const result = await api.animate(prompt, target.code, target.blenderCode);
+        setModels((current) =>
+          current.map((m) =>
+            m.id === target.id
+              ? {
+                  ...m,
+                  code: result.code,
+                  blenderCode: result.blenderCode ?? m.blenderCode,
+                }
+              : m,
+          ),
+        );
+        setActiveModelId(target.id);
+        setSelectedModelIds([target.id]);
+
+        const duration = parseAnimationDuration(result.code) ?? 3;
+        setClips((current) => {
+          const start =
+            current.length === 0
+              ? 0
+              : Math.ceil(Math.max(...current.map((c) => c.start + c.duration)));
+          return [
+            ...current,
+            {
+              id: makeId(),
+              modelId: target.id,
+              label: `${target.name} · animated`,
+              start,
+              duration,
+            },
+          ].sort((a, b) => a.start - b.start);
+        });
+
+        setStatus({
+          kind: 'info',
+          text: `Animated “${target.name}” (${duration.toFixed(duration % 1 === 0 ? 0 : 1)}s one-shot).`,
+        });
+      }),
+    [run, models, activeModelId],
   );
 
   // Slider/switch changes are code edits: patch the PARAMS literal in place.
@@ -246,7 +353,118 @@ export function useSceneProject() {
 
   const setActiveModel = useCallback((id: string) => {
     setActiveModelId(id);
+    setSelectedModelIds([id]);
   }, []);
+
+  /**
+   * Click selects one model; shift-click toggles it in the multi-select set
+   * used for Merge (does not remove the previous selection).
+   */
+  const selectModel = useCallback((id: string, options?: { shiftKey?: boolean }) => {
+    if (options?.shiftKey) {
+      setSelectedModelIds((current) => {
+        if (current.includes(id)) {
+          if (current.length <= 1) return current;
+          return current.filter((entry) => entry !== id);
+        }
+        return [...current, id];
+      });
+      setActiveModelId(id);
+      return;
+    }
+    setActiveModelId(id);
+    setSelectedModelIds([id]);
+  }, []);
+
+  /** Renames a model in the Models & Layers list (display name only). */
+  const renameModel = useCallback((modelId: string, newName: string) => {
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    setModels((current) =>
+      current.map((m) => (m.id === modelId && m.name !== trimmed ? { ...m, name: trimmed } : m)),
+    );
+    setClips((current) =>
+      current.map((c) => (c.modelId === modelId && c.label !== trimmed ? { ...c, label: trimmed } : c)),
+    );
+  }, []);
+
+  /** Renames a mesh-group key on a model's scene module (code stays source of truth). */
+  const renameModelLayer = useCallback((modelId: string, oldName: string, newName: string) => {
+    const trimmed = newName.trim();
+    if (!trimmed || trimmed === oldName) return;
+    setModels((current) =>
+      current.map((m) => {
+        if (m.id !== modelId || m.childIds?.length) return m;
+        const code = renameLayerInCode(m.code, oldName, trimmed);
+        return code === m.code ? m : { ...m, code };
+      }),
+    );
+  }, []);
+
+  /** Removes a mesh-group from a model's scene module so it no longer renders. */
+  const deleteModelLayer = useCallback((modelId: string, layerName: string) => {
+    setModels((current) =>
+      current.map((m) => {
+        if (m.id !== modelId || m.childIds?.length) return m;
+        const code = deleteLayerInCode(m.code, layerName);
+        return code === m.code ? m : { ...m, code };
+      }),
+    );
+  }, []);
+
+  /**
+   * Creates a co-view merge from the current multi-selection. Children remain
+   * separate models; the new row only groups them for side-by-side viewing.
+   */
+  const mergeSelectedModels = useCallback(() => {
+    const ids = selectedModelIds.filter((id) => models.some((m) => m.id === id));
+    if (ids.length < 2) {
+      setStatus({ kind: 'error', text: 'Shift-click at least two models, then merge.' });
+      return;
+    }
+
+    // Flatten nested merges so the viewport always gets leaf scene modules.
+    const leafIds: string[] = [];
+    for (const id of ids) {
+      const model = models.find((m) => m.id === id);
+      if (!model) continue;
+      if (model.childIds?.length) {
+        for (const childId of model.childIds) {
+          if (!leafIds.includes(childId)) leafIds.push(childId);
+        }
+      } else if (!leafIds.includes(id)) {
+        leafIds.push(id);
+      }
+    }
+    if (leafIds.length < 2) {
+      setStatus({ kind: 'error', text: 'Need at least two distinct models to merge.' });
+      return;
+    }
+
+    const children = leafIds
+      .map((id) => models.find((m) => m.id === id))
+      .filter((m): m is SceneModel => Boolean(m));
+    const primary = children[0];
+    const id = makeId();
+    const name = children.map((m) => m.name).join(' + ');
+    setModels((current) => [
+      ...current,
+      {
+        id,
+        name: name.length > 48 ? `${name.slice(0, 48)}…` : name,
+        code: primary.code,
+        blenderCode: primary.blenderCode,
+        createdAt: Date.now(),
+        childIds: leafIds,
+      },
+    ]);
+    setActiveModelId(id);
+    setSelectedModelIds([id]);
+    setStatus({
+      kind: 'info',
+      text: `Merged ${children.length} models onto one plane (not constrained — side-by-side view).`,
+    });
+  }, [selectedModelIds, models]);
 
   // Places a 1-second clip for `modelId` at the given whole second, dropped
   // from the Materials list. Per the one-model-per-second invariant, any
@@ -394,6 +612,47 @@ export function useSceneProject() {
     [run],
   );
 
+  /** Clear models/clips and reseed the Default model (unlink / no linked repo). */
+  const resetToDefault = useCallback(() => {
+    const seed = makeDefaultModel();
+    setModels([seed]);
+    setActiveModelId(seed.id);
+    setSelectedModelIds([seed.id]);
+    setClips([]);
+    setMp4Job(null);
+    setStatus({ kind: 'info', text: 'Reset to Default model.' });
+  }, []);
+
+  /** Replace local models with scripts pulled from a linked GitHub repo. Clears timeline clips. */
+  const replaceFromRemote = useCallback(
+    (remote: Array<{ id: string; name: string; code: string; blenderCode?: string }>) => {
+      if (remote.length === 0) {
+        resetToDefault();
+        setStatus({
+          kind: 'info',
+          text: 'Linked repo has no models — reset to Default.',
+        });
+        return;
+      }
+      const next: SceneModel[] = remote.map((m) => ({
+        id: m.id,
+        name: m.name,
+        code: m.code,
+        blenderCode: m.blenderCode ?? DEFAULT_BLENDER_CODE,
+        createdAt: Date.now(),
+      }));
+      setModels(next);
+      setActiveModelId(next[0].id);
+      setSelectedModelIds([next[0].id]);
+      setClips([]);
+      setStatus({
+        kind: 'info',
+        text: `Loaded ${next.length} model${next.length === 1 ? '' : 's'} from linked GitHub repo.`,
+      });
+    },
+    [resetToDefault],
+  );
+
   return {
     code,
     setCode,
@@ -404,10 +663,16 @@ export function useSceneProject() {
     busy,
     status,
     mp4Job,
-    blenderStatus,
     models,
     activeModelId,
+    selectedModelIds,
     setActiveModel,
+    selectModel,
+    mergeSelectedModels,
+    renameModel,
+    renameModelLayer,
+    deleteModelLayer,
+    viewportScenes,
     clips,
     addClipAtSecond,
     deleteClip,
@@ -419,16 +684,20 @@ export function useSceneProject() {
     timelineTotal,
     playback,
     previewCode,
+    previewScenes,
     previewTime,
     previewModelName,
     generate,
     modify,
+    animate,
     aspectRatio,
     setAspectRatio,
     exportCode,
     exportMp4,
     syncBlender,
     runBlenderAgent,
+    replaceFromRemote,
+    resetToDefault,
   };
 }
 
@@ -439,4 +708,20 @@ function downloadBlob(blob: Blob, name: string): void {
   anchor.download = name;
   anchor.click();
   URL.revokeObjectURL(url);
+}
+
+/** Resolve a model (or merge) into the scene-module entries the viewport should load. */
+export function resolveViewportScenes(
+  model: SceneModel,
+  models: SceneModel[],
+): Array<{ id: string; code: string }> {
+  if (model.childIds?.length) {
+    const scenes: Array<{ id: string; code: string }> = [];
+    for (const childId of model.childIds) {
+      const child = models.find((m) => m.id === childId);
+      if (child?.code) scenes.push({ id: child.id, code: child.code });
+    }
+    if (scenes.length > 0) return scenes;
+  }
+  return [{ id: model.id, code: model.code }];
 }

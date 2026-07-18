@@ -10,6 +10,8 @@ interface Props {
   job: Mp4JobState | null;
   /** The scene code for whatever's under the playhead. Undefined when the timeline has nothing there — renders a black screen. */
   code: string | undefined;
+  /** Multi-scene co-view when the playhead clip is a merge. Takes precedence over `code` when non-empty. */
+  scenes?: Array<{ id: string; code: string }>;
   tunables: TunableParam[];
   onParamChange: ParamChange;
   modelName: string;
@@ -30,7 +32,7 @@ interface Props {
  * the Video screen's "Camera" button) can reach the live camera directly.
  */
 export const VideoPreview = forwardRef<ViewportHandle, Props>(function VideoPreview(
-  { job, code, tunables, onParamChange, modelName, enableClickFloater = true, time },
+  { job, code, scenes, tunables, onParamChange, modelName, enableClickFloater = true, time },
   ref,
 ) {
   const [selection, setSelection] = useState<{ anchor: { x: number; y: number }; handle: ObjectHandle } | null>(
@@ -61,16 +63,17 @@ export const VideoPreview = forwardRef<ViewportHandle, Props>(function VideoPrev
         key={job.url}
         src={job.url}
         controls
-        className="block h-full max-h-full w-full rounded bg-black"
+        className="block h-full max-h-full w-full rounded-lg bg-black"
         aria-label="Rendered video preview"
       />
     );
   }
 
   const badgeClass =
-    'absolute left-2 bottom-2 max-w-[calc(100%-16px)] rounded-md border border-border bg-[rgba(10,10,11,0.85)] px-2.5 py-1 text-[12px] text-text-dim';
+    'absolute left-2 bottom-2 max-w-[calc(100%-16px)] rounded-md border border-border bg-[rgba(10,10,11,0.85)] px-2.5 py-1 text-[13px] text-text-dim';
 
-  if (!code) {
+  const hasScenes = Boolean(scenes?.length) || Boolean(code);
+  if (!hasScenes) {
     return <div className="h-full w-full bg-black" aria-label="Empty timeline" />;
   }
 
@@ -79,6 +82,7 @@ export const VideoPreview = forwardRef<ViewportHandle, Props>(function VideoPrev
       <Viewport
         ref={viewportRef}
         code={code}
+        scenes={scenes}
         onModelClick={enableClickFloater ? (anchor, handle) => setSelection({ anchor, handle }) : undefined}
         time={time}
       />

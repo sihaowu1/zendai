@@ -1,4 +1,4 @@
-import type { GenerationResult, MarketplaceItemDetail, MarketplaceItemSummary, PublishRequest, RenderSettings } from '@motionforge/shared';
+import type { GenerationResult, MarketplaceItemDetail, MarketplaceItemSummary, PublishRequest, ReferenceImage, RenderSettings } from '@motionforge/shared';
 
 /** Thin typed client for the Zendai server API (proxied through Vite). */
 
@@ -82,11 +82,14 @@ async function postJson<T>(path: string, body: unknown, options?: { requireAuth?
   return response.json() as Promise<T>;
 }
 
-export const generate = (prompt: string) =>
-  postJson<GenerationResult>('/api/generate', { prompt });
+export const generate = (prompt: string, image?: ReferenceImage) =>
+  postJson<GenerationResult>('/api/generate', { prompt, ...(image && { image }) });
 
-export const modify = (prompt: string, code: string, blenderCode: string) =>
-  postJson<GenerationResult>('/api/modify', { prompt, code, blenderCode });
+export const modify = (prompt: string, code: string, blenderCode: string, image?: ReferenceImage) =>
+  postJson<GenerationResult>('/api/modify', { prompt, code, blenderCode, ...(image && { image }) });
+
+export const animate = (prompt: string, code: string, blenderCode: string) =>
+  postJson<GenerationResult>('/api/animate', { prompt, code, blenderCode });
 
 export const getBlenderStatus = () => getJson<BlenderStatus>('/api/blender/status');
 
@@ -149,11 +152,21 @@ export interface GitHubCommitResult {
 
 export interface GitHubCreateResult extends GitHubLinkedRepo, GitHubCommitResult {}
 
-export interface GitHubProjectPayload {
+export interface GitHubModelPayload {
+  id: string;
+  name: string;
   code: string;
   blenderCode?: string;
+}
+
+export interface GitHubProjectPayload {
+  models: GitHubModelPayload[];
   title?: string;
   message?: string;
+}
+
+export interface GitHubPullResult {
+  models: GitHubModelPayload[];
 }
 
 export const githubCreateRepo = (body: GitHubProjectPayload & { name: string; private?: boolean }) =>
@@ -165,3 +178,6 @@ export const githubLinkRepo = (fullName: string) =>
 export const githubCommit = (
   body: GitHubProjectPayload & { owner: string; repo: string; branch?: string },
 ) => postJson<GitHubCommitResult>('/api/export/github/commit', body, { requireAuth: true });
+
+export const githubPull = (body: { owner: string; repo: string; branch?: string }) =>
+  postJson<GitHubPullResult>('/api/export/github/pull', body, { requireAuth: true });

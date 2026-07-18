@@ -25,10 +25,27 @@ export interface ObjectHandle {
   setTransform(transform: ObjectTransform): void;
 }
 
+export interface SceneEntry {
+  id: string;
+  code: string;
+}
+
+interface LoadedEntry {
+  id: string;
+  module: SceneModule;
+  objects: unknown;
+}
+
+/** Horizontal gap (world units) between co-viewed models on the shared ground plane. */
+const MERGE_SPACING = 4;
+
 /**
  * Live WebGL preview runtime. The editor's code string is hot-loaded as a real
  * ES module (Blob URL import), then buildScene/updateScene run against a
  * Three.js renderer with orbit controls. Any code change rebuilds the scene.
+ *
+ * Multiple entries are co-rendered side-by-side (not parented/constrained to
+ * each other) so merges can be viewed on one plane.
  */
 export class SceneRuntime {
   onError: (err: Error) => void = () => {};
@@ -40,8 +57,7 @@ export class SceneRuntime {
   private camera: THREE.PerspectiveCamera;
   private controls: OrbitControls;
   private scene = new THREE.Scene();
-  private module: SceneModule | null = null;
-  private objects: unknown = null;
+  private entries: LoadedEntry[] = [];
   private raf = 0;
   private startMs = performance.now();
   private frameErrorReported = false;
@@ -70,6 +86,12 @@ export class SceneRuntime {
   /** Toggled by the "Axes" button — persists across `setCode` rebuilds (the helper is re-added to each fresh `THREE.Scene`), reset only when a new `SceneRuntime` is constructed. */
   private axesVisible = false;
   private axesHelper: THREE.AxesHelper | null = null;
+  private grid: THREE.GridHelper | null = null;
+  private fillLights: THREE.Group | null = null;
+  private gridVisible = false;
+  private fillVisible = false;
+  /** Camera pose the current scene was framed with, restored by `resetCamera`. */
+  private homeCamera = { position: new THREE.Vector3(4, 2.6, 5.5), target: new THREE.Vector3(0, 0.8, 0) };
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -90,11 +112,31 @@ export class SceneRuntime {
   }
 
   async setCode(code: string): Promise<void> {
-    const errors = validateSceneModule(code);
-    if (errors.length > 0) throw new Error(errors.join('; '));
-    this.module = await loadSceneModule(code);
+    await this.setScenes([{ id: 'scene', code }]);
+  }
+
+  async setScenes(scenes: SceneEntry[]): Promise<void> {
+    if (scenes.length === 0) {
+      this.entries = [];
+      disposeScene(this.scene);
+      this.scene = new THREE.Scene();
+      return;
+    }
+
+    for (const entry of scenes) {
+      const errors = validateSceneModule(entry.code);
+      if (errors.length > 0) throw new Error(`${entry.id}: ${errors.join('; ')}`);
+    }
+
+    const loaded = await Promise.all(
+      scenes.map(async (entry) => ({
+        id: entry.id,
+        module: await loadSceneModule(entry.code),
+      })),
+    );
+
     this.frameErrorReported = false;
-    this.rebuild();
+    this.rebuild(loaded);
   }
 
   /**
@@ -104,6 +146,23 @@ export class SceneRuntime {
    */
   setTime(time: number): void {
     this.controlledTime = time;
+  }
+
+  setGridVisible(visible: boolean): void {
+    this.gridVisible = visible;
+    this.syncHelpers();
+  }
+
+  setFillLightsVisible(visible: boolean): void {
+    this.fillVisible = visible;
+    this.syncHelpers();
+  }
+
+  /** Return the camera to the pose the current scene was framed with. */
+  resetCamera(): void {
+    this.camera.position.copy(this.homeCamera.position);
+    this.controls.target.copy(this.homeCamera.target);
+    this.controls.update();
   }
 
   resize(width: number, height: number): void {
@@ -157,10 +216,18 @@ export class SceneRuntime {
     }
   }
 
-  /** Walks up to whatever `buildScene` added directly to `this.scene` — moving that, not a sub-mesh, is what "the clicked object" means for compound objects. */
+  /**
+   * Walks up to whatever `buildScene` added directly to the scene — moving
+   * that, not a sub-mesh, is what "the clicked object" means for compound
+   * objects. Each entry's top-level objects are wrapped in a `merge:<id>`
+   * group (see `rebuild`) so the stop condition is "parent is that group",
+   * not "parent is `this.scene`" directly.
+   */
   private topLevelAncestor(object: THREE.Object3D): THREE.Object3D {
     let node = object;
-    while (node.parent && node.parent !== this.scene) node = node.parent;
+    while (node.parent && node.parent !== this.scene && !node.parent.name.startsWith('merge:')) {
+      node = node.parent;
+    }
     return node;
   }
 
@@ -241,40 +308,113 @@ export class SceneRuntime {
     if (this.axesHelper.parent !== this.scene) this.scene.add(this.axesHelper);
   }
 
-  private rebuild(): void {
+  private rebuild(loaded: Array<{ id: string; module: SceneModule }>): void {
     // Spare the reused axes helper from disposal — it's about to be re-added to the fresh scene, not thrown away.
     if (this.axesHelper) this.scene.remove(this.axesHelper);
     disposeScene(this.scene);
     this.scene = new THREE.Scene();
+    this.entries = [];
+    this.grid = null;
+    this.fillLights = null;
     this.transformOverrides.clear();
     this.clearCameraOverride();
     this.syncAxesHelper();
-    const module = this.module;
-    if (!module) return;
-    const camera = module.CAMERA;
-    if (camera?.position) this.camera.position.set(...camera.position);
-    if (camera?.fov) {
-      this.camera.fov = camera.fov;
+
+    const primary = loaded[0]?.module;
+    if (primary?.CAMERA?.position) this.camera.position.set(...primary.CAMERA.position);
+    if (primary?.CAMERA?.fov) {
+      this.camera.fov = primary.CAMERA.fov;
       this.camera.updateProjectionMatrix();
     }
-    if (camera?.lookAt) this.controls.target.set(...camera.lookAt);
-    try {
-      this.objects = module.buildScene({ THREE, scene: this.scene, params: module.PARAMS });
-    } catch (err) {
-      this.onError(err instanceof Error ? err : new Error(String(err)));
+    if (primary?.CAMERA?.lookAt) this.controls.target.set(...primary.CAMERA.lookAt);
+
+    // Pull the camera back a bit when several models share the plane.
+    if (loaded.length > 1) {
+      const span = (loaded.length - 1) * MERGE_SPACING;
+      this.camera.position.x = 0;
+      this.camera.position.z = Math.max(this.camera.position.z, 5.5 + span * 0.45);
+      this.controls.target.set(0, 0.8, 0);
+    }
+
+    for (let i = 0; i < loaded.length; i++) {
+      const { id, module } = loaded[i];
+      const before = new Set(this.scene.children);
+      const backgroundBefore = this.scene.background;
+
+      try {
+        const objects = module.buildScene({
+          THREE,
+          scene: this.scene,
+          params: module.PARAMS,
+        });
+
+        const added = this.scene.children.filter((child) => !before.has(child));
+        const group = new THREE.Group();
+        group.name = `merge:${id}`;
+        group.position.x = (i - (loaded.length - 1) / 2) * MERGE_SPACING;
+        for (const obj of added) {
+          this.scene.remove(obj);
+          group.add(obj);
+        }
+        this.scene.add(group);
+
+        // Keep the first module's background; later modules may overwrite it.
+        if (i > 0) this.scene.background = backgroundBefore;
+
+        this.entries.push({ id, module, objects });
+      } catch (err) {
+        this.onError(err instanceof Error ? err : new Error(String(err)));
+      }
+    }
+
+    // Framing is settled by this point (module CAMERA plus the merge pull-back),
+    // so this is the pose "reset camera" should return to.
+    this.homeCamera.position.copy(this.camera.position);
+    this.homeCamera.target.copy(this.controls.target);
+
+    this.syncHelpers();
+  }
+
+  /**
+   * Grid and fill lights are viewport furniture, not part of the model, so they
+   * are created lazily and re-added after every rebuild drops the old scene.
+   */
+  private syncHelpers(): void {
+    if (this.gridVisible) {
+      if (!this.grid) {
+        this.grid = new THREE.GridHelper(20, 20, 0x4a4a4a, 0x2c2c2c);
+      }
+      if (this.grid.parent !== this.scene) this.scene.add(this.grid);
+    } else if (this.grid?.parent) {
+      this.scene.remove(this.grid);
+    }
+
+    if (this.fillVisible) {
+      if (!this.fillLights) {
+        const group = new THREE.Group();
+        group.name = 'viewport:fill';
+        group.add(new THREE.AmbientLight(0xffffff, 0.55));
+        const key = new THREE.DirectionalLight(0xffffff, 0.9);
+        key.position.set(4, 6, 5);
+        group.add(key);
+        this.fillLights = group;
+      }
+      if (this.fillLights.parent !== this.scene) this.scene.add(this.fillLights);
+    } else if (this.fillLights?.parent) {
+      this.scene.remove(this.fillLights);
     }
   }
 
   private loop(now: number): void {
-    const module = this.module;
-    if (module) {
+    const time = this.controlledTime !== null ? this.controlledTime : (now - this.startMs) / 1000;
+    for (const entry of this.entries) {
       try {
-        module.updateScene({
+        entry.module.updateScene({
           THREE,
           scene: this.scene,
-          objects: this.objects,
-          params: module.PARAMS,
-          time: this.controlledTime !== null ? this.controlledTime : (now - this.startMs) / 1000,
+          objects: entry.objects,
+          params: entry.module.PARAMS,
+          time,
         });
       } catch (err) {
         if (!this.frameErrorReported) {

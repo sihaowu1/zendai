@@ -1,5 +1,6 @@
 import { Octokit } from '@octokit/rest';
 import type { ProjectFile } from './codeExport';
+import { parseModelFolder, type GitHubModelInput } from './githubProjectFiles';
 
 export interface LinkedRepo {
   owner: string;
@@ -180,6 +181,94 @@ export function parseOwnerRepo(
     throw new Error('Repository must be in owner/repo format');
   }
   return { owner: match[1], repo: match[2] };
+}
+
+/**
+ * Pull scene modules from `models/<slug>/` in a linked repo.
+ * Missing `models/` returns an empty list. Animations are ignored for now.
+ */
+export async function pullModelsFromRepo(options: {
+  token: string;
+  owner: string;
+  repo: string;
+  branch?: string;
+}): Promise<{ models: GitHubModelInput[] }> {
+  const octokit = new Octokit({ auth: options.token });
+  const { owner, repo } = options;
+
+  let branch = options.branch;
+  if (!branch) {
+    const { data: repoData } = await octokit.repos.get({ owner, repo });
+    branch = repoData.default_branch || 'main';
+  }
+
+  let tree;
+  try {
+    const { data: ref } = await octokit.git.getRef({
+      owner,
+      repo,
+      ref: `heads/${branch}`,
+    });
+    const { data } = await octokit.git.getTree({
+      owner,
+      repo,
+      tree_sha: ref.object.sha,
+      recursive: 'true',
+    });
+    tree = data.tree;
+  } catch (err) {
+    const status = (err as { status?: number })?.status;
+    if (status === 404) return { models: [] };
+    throw err;
+  }
+
+  const modulePaths = tree
+    .filter((entry) => entry.type === 'blob' && entry.path)
+    .map((entry) => entry.path as string)
+    .filter((path) => /^models\/[^/]+\/scene\.module\.js$/.test(path));
+
+  const models: GitHubModelInput[] = [];
+
+  for (const modulePath of modulePaths) {
+    const folder = modulePath.split('/')[1];
+    if (!folder) continue;
+    const { id, name } = parseModelFolder(folder);
+    const code = await fetchFileContent(octokit, owner, repo, modulePath, branch);
+    if (!code.trim()) continue;
+
+    let blenderCode: string | undefined;
+    try {
+      blenderCode = await fetchFileContent(
+        octokit,
+        owner,
+        repo,
+        `models/${folder}/scene.blender.py`,
+        branch,
+      );
+      if (!blenderCode.trim()) blenderCode = undefined;
+    } catch {
+      blenderCode = undefined;
+    }
+
+    models.push({ id, name, code, blenderCode });
+  }
+
+  models.sort((a, b) => a.name.localeCompare(b.name));
+  return { models };
+}
+
+async function fetchFileContent(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  path: string,
+  ref: string,
+): Promise<string> {
+  const { data } = await octokit.repos.getContent({ owner, repo, path, ref });
+  if (Array.isArray(data) || data.type !== 'file' || !('content' in data) || !data.content) {
+    throw new Error(`Expected file at ${path}`);
+  }
+  return Buffer.from(data.content, data.encoding === 'base64' ? 'base64' : 'utf8').toString('utf8');
 }
 
 async function waitForBranch(

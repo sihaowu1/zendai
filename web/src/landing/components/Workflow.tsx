@@ -4,23 +4,23 @@ import { PenLine, Wand2, SlidersHorizontal, Download } from "lucide-react";
 const STEPS = [
   {
     icon: PenLine,
-    label: "Prompt",
-    description: "Describe the world you want: terrain, mood, materials, motion.",
+    label: "Describe",
+    description: "Tell Zendai what you want in plain English — a landscape, a product shot, an animation.",
   },
   {
     icon: Wand2,
     label: "Generate",
-    description: "Zendai assembles geometry, lighting, and camera into an editable scene.",
+    description: "Get a complete 3D scene back in seconds, ready to preview and play with.",
   },
   {
     icon: SlidersHorizontal,
-    label: "Edit",
-    description: "Refine on the timeline. Tweak meshes, keyframes, and properties directly.",
+    label: "Refine",
+    description: "Tweak colors, timing, camera angles — change exactly what you want without starting over.",
   },
   {
     icon: Download,
     label: "Export",
-    description: "Ship as Three.js code or render a cinematic MP4 through Remotion.",
+    description: "Drop it into your website, app, or render a video for social media.",
   },
 ];
 
@@ -53,7 +53,7 @@ export default function Workflow() {
           </div>
           <div className="lg:col-span-8">
             <h2 className="font-heading text-3xl sm:text-4xl lg:text-5xl font-bold tracking-[-0.03em] text-white text-balance">
-              Four steps from sentence to scene.
+              From idea to 3D in four steps.
             </h2>
           </div>
         </div>

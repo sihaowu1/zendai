@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import type { RenderSettings } from '@motionforge/shared';
 import type { Mp4JobState } from '../state/useSceneProject';
+import { Button, ButtonLink } from './ui/Button';
+import { PANEL, PANEL_HEADER } from './ui/Panel';
+import { FIELD, FIELD_LABEL } from './ui/Input';
 
 interface Props {
   busy: string | null;
@@ -27,19 +30,19 @@ export function ExportPanel({ busy, mp4Job, onExportCode, onExportMp4 }: Props) 
   const rendering = mp4Job?.status === 'running';
 
   return (
-    <section className="flex flex-col gap-2.5 rounded-lg border border-border bg-bg-raised p-3">
-      <h2 className="m-0 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-text-dim">
+    <section className={`flex flex-col gap-3 ${PANEL} p-4`}>
+      <h2 className={PANEL_HEADER}>
         Export
       </h2>
-      <button type="button" className="btn btn-primary" disabled={busy !== null} onClick={onExportCode}>
+      <Button variant="primary" type="button" disabled={busy !== null} onClick={onExportCode}>
         Export code (.zip)
-      </button>
+      </Button>
 
       <div className="grid grid-cols-3 gap-1.5">
-        <label className="flex flex-col gap-1 text-[11px] text-text-dim">
+        <label className={FIELD_LABEL}>
           FPS
           <select
-            className="rounded-md border border-border bg-bg px-2.5 py-1.5 text-[13px] text-text focus:border-accent focus:outline-none"
+            className={FIELD}
             value={fps}
             onChange={(event) => setFps(Number(event.target.value))}
           >
@@ -48,21 +51,21 @@ export function ExportPanel({ busy, mp4Job, onExportCode, onExportMp4 }: Props) 
             <option value={60}>60</option>
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-[11px] text-text-dim">
+        <label className={FIELD_LABEL}>
           Seconds
           <input
             type="number"
-            className="rounded-md border border-border bg-bg px-2.5 py-1.5 text-[13px] text-text focus:border-accent focus:outline-none"
+            className={FIELD}
             min={1}
             max={60}
             value={duration}
             onChange={(event) => setDuration(Number(event.target.value))}
           />
         </label>
-        <label className="flex flex-col gap-1 text-[11px] text-text-dim">
+        <label className={FIELD_LABEL}>
           Size
           <select
-            className="rounded-md border border-border bg-bg px-2.5 py-1.5 text-[13px] text-text focus:border-accent focus:outline-none"
+            className={FIELD}
             value={resolution}
             onChange={(event) => setResolution(Number(event.target.value))}
           >
@@ -75,9 +78,9 @@ export function ExportPanel({ busy, mp4Job, onExportCode, onExportMp4 }: Props) 
         </label>
       </div>
 
-      <button
+      <Button
+        variant="primary"
         type="button"
-        className="btn btn-primary"
         disabled={busy !== null || rendering}
         onClick={() =>
           onExportMp4({
@@ -89,7 +92,7 @@ export function ExportPanel({ busy, mp4Job, onExportCode, onExportMp4 }: Props) 
         }
       >
         {rendering ? 'Rendering…' : 'Render MP4 (Remotion)'}
-      </button>
+      </Button>
 
       {mp4Job && (
         <div className="flex flex-col gap-2">
@@ -101,18 +104,18 @@ export function ExportPanel({ busy, mp4Job, onExportCode, onExportMp4 }: Props) 
                   style={{ width: `${Math.round(mp4Job.progress * 100)}%` }}
                 />
               </div>
-              <p className="m-0 text-[13px] leading-relaxed text-text-dim">
+              <p className="m-0 text-[13px] leading-normal text-text-faint">
                 {mp4Job.message} ({Math.round(mp4Job.progress * 100)}%)
               </p>
             </>
           )}
           {mp4Job.status === 'done' && mp4Job.url && (
-            <a className="btn btn-primary bg-ok border-ok hover:bg-ok/85" href={mp4Job.url} download>
+            <ButtonLink variant="success" href={mp4Job.url} download>
               Download MP4
-            </a>
+            </ButtonLink>
           )}
           {mp4Job.status === 'error' && (
-            <p className="m-0 text-[13px] leading-relaxed text-error">{mp4Job.error}</p>
+            <p className="m-0 text-[14px] leading-relaxed text-error">{mp4Job.error}</p>
           )}
         </div>
       )}

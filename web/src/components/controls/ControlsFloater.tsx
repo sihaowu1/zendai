@@ -5,6 +5,7 @@ import { X } from '@phosphor-icons/react';
 import type { ObjectHandle } from '../../viewport/SceneRuntime';
 import { ControlsPanel, type ParamChange } from './ControlsPanel';
 import { TransformControls } from './TransformControls';
+import { IconButton } from '../ui/Button';
 
 interface Props {
   /** Viewport-relative point (clientX/clientY) to anchor the floater near. */
@@ -83,14 +84,14 @@ export function ControlsFloater({
     >
       <header className="flex flex-shrink-0 items-center gap-2 border-b border-border bg-bg-raised py-2 pl-3 pr-2">
         <span
-          className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-[11px] font-semibold uppercase tracking-wider text-text-dim"
+          className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap font-mono text-[11.5px] font-semibold uppercase leading-none tracking-[0.09em] text-text-dim"
           title={title}
         >
           {title}
         </span>
-        <button type="button" className="btn-icon h-6 w-6" aria-label="Close controls" onClick={onClose}>
+        <IconButton type="button" className="h-6 w-6" aria-label="Close controls" onClick={onClose}>
           <X size={14} />
-        </button>
+        </IconButton>
       </header>
       <div className="flex min-h-0 flex-col gap-2.5 overflow-y-auto p-3 [&_section]:border-0 [&_section]:bg-transparent [&_section]:p-0">
         {objectHandle && <TransformControls handle={objectHandle} label={transformLabel} />}

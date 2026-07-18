@@ -1,6 +1,6 @@
 /**
- * Statically extracts the mesh-group ("layer") names a generated scene module
- * exposes, without executing the module.
+ * Statically extracts and rewrites the mesh-group ("layer") names a generated
+ * scene module exposes, without executing the module.
  *
  * `buildScene` returns a flat object mapping names to Three.js objects, e.g.
  * `return { body: body, ground: ground, keyLight: keyLight }` (see
@@ -9,33 +9,131 @@
  * layers list can be built for every generated model without spinning up a
  * WebGL context per row (that only happens once, live, in the viewport).
  */
+
+const IDENT_RE = /^[A-Za-z_$][\w$]*$/;
+
 export function extractLayers(code: string): string[] {
-  const buildSceneBody = extractFunctionBody(code, 'buildScene');
-  if (!buildSceneBody) return [];
-  const returnBody = extractReturnObjectBody(buildSceneBody);
-  if (returnBody === null) return [];
-  const keys = extractTopLevelEntries(returnBody)
+  const returnObj = findBuildSceneReturnObject(code);
+  if (!returnObj) return [];
+  const keys = extractTopLevelEntries(returnObj.body)
     .map(keyFromEntry)
     .filter((key): key is string => key !== null);
   // De-dupe while preserving first-seen order, in case a key is assigned twice.
   return [...new Set(keys)];
 }
 
-function extractFunctionBody(code: string, name: string): string | null {
+/**
+ * Renames a returned layer key in `buildScene` and updates `objects.<name>`
+ * references in the module (typically `updateScene`). The underlying local
+ * binding is left alone so geometry construction stays intact.
+ */
+export function renameLayer(code: string, oldName: string, newName: string): string {
+  const trimmed = newName.trim();
+  if (!oldName || !trimmed || oldName === trimmed) return code;
+  if (!IDENT_RE.test(trimmed)) return code;
+
+  const layers = extractLayers(code);
+  if (!layers.includes(oldName) || layers.includes(trimmed)) return code;
+
+  const withReturn = rewriteReturnKey(code, oldName, (entry) => {
+    const colonIndex = entry.indexOf(':');
+    if (colonIndex === -1) return `${trimmed}: ${oldName}`;
+    return `${trimmed}:${entry.slice(colonIndex + 1)}`;
+  });
+  if (withReturn === code) return code;
+
+  return withReturn.replace(new RegExp(`\\bobjects\\.${escapeRegExp(oldName)}\\b`, 'g'), `objects.${trimmed}`);
+}
+
+/**
+ * Removes a layer from the `buildScene` return map, drops `.add(<name>)` calls
+ * so the mesh is never attached to the scene, and strips `objects.<name>`
+ * usages (usually in `updateScene`). Local `const` declarations are left in
+ * place — they become unused and no longer render.
+ */
+export function deleteLayer(code: string, name: string): string {
+  if (!name || !extractLayers(code).includes(name)) return code;
+
+  let next = rewriteReturnKey(code, name, () => null);
+  next = removeSceneAddCalls(next, name);
+  next = removeObjectsReferenceLines(next, name);
+  return next;
+}
+
+interface Span {
+  start: number;
+  end: number;
+  body: string;
+}
+
+function findBuildSceneReturnObject(code: string): Span | null {
+  const fn = findExportedFunctionBody(code, 'buildScene');
+  if (!fn) return null;
+  const match = /return\s*\{/.exec(fn.body);
+  if (!match) return null;
+  const openInBody = match.index + match[0].length - 1;
+  const closeInBody = findMatchingBrace(fn.body, openInBody);
+  if (closeInBody === null) return null;
+  const open = fn.start + openInBody;
+  const close = fn.start + closeInBody;
+  return { start: open + 1, end: close, body: code.slice(open + 1, close) };
+}
+
+function findExportedFunctionBody(code: string, name: string): Span | null {
   const re = new RegExp(`export\\s+function\\s+${name}\\s*\\([^)]*\\)\\s*\\{`);
   const match = re.exec(code);
   if (!match) return null;
   const open = match.index + match[0].length - 1;
   const end = findMatchingBrace(code, open);
-  return end === null ? null : code.slice(open + 1, end);
+  if (end === null) return null;
+  return { start: open + 1, end, body: code.slice(open + 1, end) };
 }
 
-function extractReturnObjectBody(functionBody: string): string | null {
-  const match = /return\s*\{/.exec(functionBody);
-  if (!match) return null;
-  const open = match.index + match[0].length - 1;
-  const end = findMatchingBrace(functionBody, open);
-  return end === null ? null : functionBody.slice(open + 1, end);
+function rewriteReturnKey(
+  code: string,
+  name: string,
+  replace: (entry: string) => string | null,
+): string {
+  const returnObj = findBuildSceneReturnObject(code);
+  if (!returnObj) return code;
+
+  const entries = extractTopLevelEntries(returnObj.body);
+  const nextEntries: string[] = [];
+  let changed = false;
+  for (const entry of entries) {
+    if (keyFromEntry(entry) !== name) {
+      nextEntries.push(entry);
+      continue;
+    }
+    changed = true;
+    const rewritten = replace(entry.trim());
+    if (rewritten !== null && rewritten.trim()) nextEntries.push(`\n    ${rewritten.trim()}`);
+  }
+  if (!changed) return code;
+
+  const nextBody =
+    nextEntries.length === 0
+      ? ''
+      : `${nextEntries.map((e) => (e.startsWith('\n') ? e : `\n    ${e.trim()}`)).join(',')}\n  `;
+  return code.slice(0, returnObj.start) + nextBody + code.slice(returnObj.end);
+}
+
+/** Drops lines like `root.add(head);` / `scene.add(ground);` for the given binding. */
+function removeSceneAddCalls(code: string, name: string): string {
+  const re = new RegExp(
+    `^[ \\t]*[A-Za-z_$][\\w$]*\\.add\\(\\s*${escapeRegExp(name)}\\s*\\);?[ \\t]*\\r?\\n?`,
+    'gm',
+  );
+  return code.replace(re, '');
+}
+
+/** Drops any line that references `objects.<name>` (statement or array entry). */
+function removeObjectsReferenceLines(code: string, name: string): string {
+  const re = new RegExp(
+    `^[ \\t]*[^\\n]*\\bobjects\\.${escapeRegExp(name)}\\b[^\\n]*\\r?\\n?`,
+    'gm',
+  );
+  return code.replace(re, '');
 }
 
 function findMatchingBrace(text: string, openIndex: number): number | null {
@@ -100,5 +198,9 @@ function keyFromEntry(entry: string): string | null {
   if (!trimmed) return null;
   const colonIndex = trimmed.indexOf(':');
   const keyPart = (colonIndex === -1 ? trimmed : trimmed.slice(0, colonIndex)).trim();
-  return /^[A-Za-z_$][\w$]*$/.test(keyPart) ? keyPart : null;
+  return IDENT_RE.test(keyPart) ? keyPart : null;
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

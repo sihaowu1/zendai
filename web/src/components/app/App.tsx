@@ -1,6 +1,5 @@
 import { Link, NavLink, Navigate, Route, Routes } from 'react-router-dom';
 import { useSceneProject } from '../../state/useSceneProject';
-import { StatusBar } from './StatusBar';
 import { Logo } from './Logo';
 import { ModelGenerationScreen } from '../screens/ModelGenerationScreen';
 import { VideoGenerationScreen } from '../screens/VideoGenerationScreen';
@@ -9,6 +8,8 @@ import { ChatPanel } from '../ChatPanel';
 import { useAuth } from '../../auth/useAuth';
 import { MarketplaceScreen } from '../screens/MarketplaceScreen';
 import { MarketplaceDetailScreen } from '../screens/MarketplaceDetailScreen';
+import { Button } from '../ui/Button';
+import { useGitHubStartupSync } from '../useGitHubStartupSync';
 
 /**
  * Studio router shell (mounted under `/*` from `main.tsx`).
@@ -22,6 +23,7 @@ import { MarketplaceDetailScreen } from '../screens/MarketplaceDetailScreen';
  */
 export function App() {
   const project = useSceneProject();
+  useGitHubStartupSync({ replaceFromRemote: project.replaceFromRemote });
 
   return (
     <div className="flex h-full flex-col">
@@ -43,9 +45,12 @@ export function App() {
                 timelineTotal={project.timelineTotal}
                 playback={project.playback}
                 previewCode={project.previewCode}
+                previewScenes={project.previewScenes}
                 previewTime={project.previewTime}
                 previewModelName={project.previewModelName}
                 onDropModel={project.addClipAtSecond}
+                activeModelId={project.activeModelId}
+                onSelectModel={project.setActiveModel}
                 onDeleteClip={project.deleteClip}
                 onCopyClip={project.copyClip}
                 onPasteClip={project.pasteClip}
@@ -55,8 +60,12 @@ export function App() {
                   <ChatPanel
                     busy={project.busy}
                     status={project.status}
-                    onGenerate={project.generate}
+                    onGenerate={project.animate}
                     onModify={project.modify}
+                    showTitle={false}
+                    generateLabel="Animate"
+                    placeholder="Describe an animation — uses the selected model, or name one in the prompt…"
+                    emptyHint="Animate the active model (or name a model in your prompt). One-shot timeline — no looping filler."
                   />
                 }
               />
@@ -66,9 +75,10 @@ export function App() {
             path="/export"
             element={
               <ExportScreen
+                models={project.models}
                 code={project.code}
                 blenderCode={project.blenderCode}
-                modelName={project.models.find((m) => m.id === project.activeModelId)?.name ?? 'Scene'}
+                modelName={project.models.find((m) => m.id === project.activeModelId)?.name ?? 'Model'}
                 busy={project.busy}
                 onExportCode={project.exportCode}
                 onExportMp4={project.exportMp4}
@@ -79,8 +89,11 @@ export function App() {
                 timelineTotal={project.timelineTotal}
                 playback={project.playback}
                 previewCode={project.previewCode}
+                previewScenes={project.previewScenes}
                 previewTime={project.previewTime}
                 previewModelName={project.previewModelName}
+                onGitHubUnlink={project.resetToDefault}
+                onGitHubPull={project.replaceFromRemote}
               />
             }
           />
@@ -89,7 +102,6 @@ export function App() {
           <Route path="*" element={<Navigate to="/model" replace />} />
         </Routes>
       </div>
-      <StatusBar busy={project.busy} status={project.status} />
     </div>
   );
 }
@@ -121,15 +133,15 @@ function TopNav() {
       {configured && !isLoading && (
         isAuthenticated ? (
           <div className="flex items-center gap-2.5">
-            {user?.name && <span className="text-[13px] text-text-dim">{user.name}</span>}
-            <button type="button" className="btn btn-secondary" onClick={logout}>
+            {user?.name && <span className="text-[14px] text-text-dim">{user.name}</span>}
+            <Button variant="secondary" type="button" onClick={logout}>
               Log out
-            </button>
+            </Button>
           </div>
         ) : (
-          <button type="button" className="btn btn-secondary" onClick={() => void login({ screenHint: 'login' })}>
+          <Button variant="secondary" type="button" onClick={() => void login({ screenHint: 'login' })}>
             Log in
-          </button>
+          </Button>
         )
       )}
     </div>
@@ -137,7 +149,7 @@ function TopNav() {
 }
 
 function navLinkClassName({ isActive }: { isActive: boolean }): string {
-  return `rounded-md px-3 py-1.5 text-[13px] font-medium no-underline transition-colors ${
+  return `rounded-md px-3 py-1.5 text-[14px] font-medium no-underline transition-colors ${
     isActive ? 'text-text bg-bg-raised' : 'text-text-dim bg-transparent hover:text-text hover:bg-bg-raised/60'
   }`;
 }

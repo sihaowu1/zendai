@@ -1,30 +1,30 @@
 import React from "react";
-import { Boxes, PencilRuler, MonitorPlay, FileCode2, ArrowUpRight } from "lucide-react";
+import { Code2, PencilRuler, MonitorPlay, FileCode2, ArrowUpRight } from "lucide-react";
 
 const FEATURES = [
   {
-    icon: Boxes,
-    title: "Blender Integration",
+    icon: Code2,
+    title: "Fully Editable Output",
     description:
-      "Native import of .blend files with full geometry, materials, and rigging preserved. Round-trip edits between browser and desktop.",
+      "Unlike AI tools that give you a black box, Zendai gives you real code. Change anything — colors, shapes, motion — without starting over.",
   },
   {
     icon: PencilRuler,
-    title: "Editable Scenes",
+    title: "Tweak, Don't Regenerate",
     description:
-      "Every object is non-destructive. Adjust meshes, lighting, and camera paths on a visual timeline without rebuilding.",
+      "Adjust a single detail without redoing the whole scene. Move a light, shift a color, speed up an animation — one change at a time.",
   },
   {
     icon: MonitorPlay,
-    title: "Browser-Based 3D",
+    title: "See Changes Instantly",
     description:
-      "Real-time WebGL rendering. No installs, no plugins. Your scenes stream instantly to any modern browser.",
+      "Every edit shows up live in the browser. No waiting for renders, no loading screens — just immediate visual feedback.",
   },
   {
     icon: FileCode2,
-    title: "Export Code & MP4",
+    title: "Export Anywhere",
     description:
-      "Ship production-ready Three.js components or render cinematic MP4s via Remotion, directly from the canvas.",
+      "Drop your scene into any web project as a component, or render a polished video ready for social media or presentations.",
   },
 ];
 
@@ -38,11 +38,11 @@ export default function Features() {
           </div>
           <div className="lg:col-span-8">
             <h2 className="font-heading text-3xl sm:text-4xl lg:text-5xl font-bold tracking-[-0.03em] text-white text-balance">
-              A complete toolchain for spatial content.
+              You stay in control.
             </h2>
             <p className="mt-4 max-w-xl text-slate-400 leading-relaxed">
-              Four capabilities that take a scene from a single sentence to a
-              shipped, exportable product.
+              Most AI 3D tools hand you something you can't change.
+              Zendai gives you results you can actually work with.
             </p>
           </div>
         </div>

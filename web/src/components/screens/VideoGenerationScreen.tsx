@@ -13,6 +13,7 @@ import type { Mp4JobState, SceneModel } from '../../state/useSceneProject';
 import type { ObjectHandle } from '../../viewport/SceneRuntime';
 import type { ViewportHandle } from '../../viewport/Viewport';
 import { VideoPreview } from '../VideoPreview';
+import { PANEL_HEADER } from '../ui/Panel';
 
 export interface VideoGenerationScreenProps {
   /** Models generated on the Model Generation screen (from `useSceneProject.models`). */
@@ -43,6 +44,8 @@ export interface VideoGenerationScreenProps {
   playback: TimelinePlayback;
   /** Scene code for whatever's under the playhead (from `useSceneProject.previewCode`); undefined shows a black screen. */
   previewCode: string | undefined;
+  /** Multi-scene co-view when the playhead clip is a merge. */
+  previewScenes?: Array<{ id: string; code: string }>;
   /** Playhead position local to the active clip (from `useSceneProject.previewTime`). */
   previewTime: number;
   /** Display name for whatever's under the playhead (from `useSceneProject.previewModelName`). */
@@ -52,6 +55,9 @@ export interface VideoGenerationScreenProps {
    * `modelId` at whole-second `second` (from `useSceneProject.addClipAtSecond`).
    */
   onDropModel: (modelId: string, second: number) => void;
+  /** Selects a material as the animation / edit target (from `useSceneProject.setActiveModel`). */
+  activeModelId: string;
+  onSelectModel: (id: string) => void;
   /** Deletes a clip, from the timeline's right-click menu (from `useSceneProject.deleteClip`). */
   onDeleteClip: (clipId: string) => void;
   /** Stashes a clip in the clipboard, from the timeline's right-click menu (from `useSceneProject.copyClip`). */
@@ -88,9 +94,12 @@ export function VideoGenerationScreen({
   timelineTotal,
   playback,
   previewCode,
+  previewScenes,
   previewTime,
   previewModelName,
   onDropModel,
+  activeModelId,
+  onSelectModel,
   onDeleteClip,
   onCopyClip,
   onPasteClip,
@@ -163,7 +172,7 @@ export function VideoGenerationScreen({
         </Pane>
         <ResizeHandle direction="horizontal" onPointerDown={chatWidth.startDragging} label="Resize chat panel" />
         <Pane title="Materials">
-          <MaterialsList models={models} />
+          <MaterialsList models={models} activeModelId={activeModelId} onSelectModel={onSelectModel} />
         </Pane>
         <ResizeHandle
           direction="horizontal"
@@ -211,6 +220,7 @@ export function VideoGenerationScreen({
                 ref={videoPreviewRef}
                 job={mp4Job}
                 code={previewCode}
+                scenes={previewScenes}
                 tunables={tunables}
                 onParamChange={onParamChange}
                 modelName={previewModelName}
@@ -231,7 +241,7 @@ export function VideoGenerationScreen({
             )}
             {isDropTarget && (
               <div
-                className="pointer-events-none absolute inset-0 flex items-center justify-center bg-[rgba(10,10,11,0.65)] text-[13px] font-semibold text-text"
+                className="pointer-events-none absolute inset-0 flex items-center justify-center bg-[rgba(10,10,11,0.65)] text-[14px] font-semibold text-text"
                 aria-hidden="true"
               >
                 Drop to place at {formatDropSecond(playback.currentTime)}s
@@ -265,12 +275,19 @@ function formatDropSecond(time: number): number {
 }
 
 /**
- * Read-only list of models generated on the Model Generation screen.
- * Purely a view over the `models` prop — no local state, no fetching. Each
- * item is draggable so it can be dropped onto the video preview to place it
- * on the timeline (see `MODEL_DRAG_TYPE`).
+ * List of models generated on the Model Generation screen.
+ * Click selects the animation/edit target; drag onto the preview/timeline
+ * places a clip (`MODEL_DRAG_TYPE`).
  */
-function MaterialsList({ models }: { models: SceneModel[] }) {
+function MaterialsList({
+  models,
+  activeModelId,
+  onSelectModel,
+}: {
+  models: SceneModel[];
+  activeModelId: string;
+  onSelectModel: (id: string) => void;
+}) {
   if (models.length === 0) {
     return (
       <Placeholder
@@ -281,23 +298,33 @@ function MaterialsList({ models }: { models: SceneModel[] }) {
   }
   return (
     <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
-      {models.map((m) => (
-        <li
-          key={m.id}
-          className="flex cursor-grab items-center gap-2 rounded border border-border bg-bg-raised px-2 py-1.5"
-          draggable
-          onDragStart={(event) => {
-            event.dataTransfer.setData(MODEL_DRAG_TYPE, m.id);
-            event.dataTransfer.effectAllowed = 'copy';
-          }}
-        >
-          <div className="h-8 w-8 flex-shrink-0 rounded-sm border border-border bg-bg" aria-hidden="true" />
-          <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[13px] text-text" title={m.name}>
-
-            {m.name}
-          </span>
-        </li>
-      ))}
+      {models.map((m) => {
+        const isActive = m.id === activeModelId;
+        return (
+          <li
+            key={m.id}
+            className={`flex cursor-grab items-center gap-2 rounded-lg border px-3 py-2 ${
+              isActive
+                ? 'border-accent bg-accent/10'
+                : 'border-border bg-bg-raised hover:border-border hover:bg-bg-raised/80'
+            }`}
+            draggable
+            onClick={() => onSelectModel(m.id)}
+            onDragStart={(event) => {
+              event.dataTransfer.setData(MODEL_DRAG_TYPE, m.id);
+              event.dataTransfer.effectAllowed = 'copy';
+            }}
+          >
+            <div className="h-8 w-8 flex-shrink-0 rounded-sm border border-border bg-bg" aria-hidden="true" />
+            <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[14px] text-text" title={m.name}>
+              {m.name}
+              {m.childIds?.length ? (
+                <span className="ml-1 font-normal text-text-dim">· merge</span>
+              ) : null}
+            </span>
+          </li>
+        );
+      })}
     </ul>
   );
 }
@@ -315,11 +342,15 @@ function Pane({
 }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-bg-panel" aria-label={title}>
-      <header className="flex items-center justify-between gap-2 border-b border-border bg-bg-raised px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-text-dim">
+      {/* Same muted mono title the Model and Export screens use, so a pane
+          header reads identically wherever you meet one. Header and body share
+          one horizontal inset — at px-4 over p-3 every pane's content sat 4px
+          left of its own title. */}
+      <header className={`flex items-center justify-between gap-2 border-b border-border px-4 py-3 ${PANEL_HEADER}`}>
         <span>{title}</span>
         {actions}
       </header>
-      <div className={`min-h-0 flex-1 overflow-auto p-3 ${bodyClassName ?? ''}`}>{children}</div>
+      <div className={`min-h-0 flex-1 overflow-auto p-4 ${bodyClassName ?? ''}`}>{children}</div>
     </div>
   );
 }
@@ -399,9 +430,9 @@ function AxesToggleButton({ pressed, onToggle }: { pressed: boolean; onToggle: (
 
 function Placeholder({ label, hint }: { label: string; hint: string }) {
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-1.5 rounded border border-dashed border-border p-4 text-center text-text-dim">
-      <div className="text-[14px] font-semibold text-text">{label}</div>
-      <div className="text-[13px]">{hint}</div>
+    <div className="flex h-full flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-border p-4 text-center text-text-dim">
+      <div className="text-[15px] font-semibold text-text">{label}</div>
+      <div className="text-[14px]">{hint}</div>
     </div>
   );
 }

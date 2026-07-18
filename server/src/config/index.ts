@@ -47,7 +47,8 @@ export const config: AppConfig = {
   ai: { ...raw.ai, model: process.env.ANTHROPIC_MODEL ?? raw.ai.model },
   auth0: {
     domain: process.env.AUTH0_DOMAIN ?? raw.auth0?.domain ?? '',
-    audience: process.env.AUTH0_AUDIENCE ?? raw.auth0?.audience ?? '',
+    // Strip trailing slashes — Auth0 identifiers are exact-match.
+    audience: (process.env.AUTH0_AUDIENCE ?? raw.auth0?.audience ?? '').replace(/\/+$/, ''),
     mgmtClientId: process.env.AUTH0_MGMT_CLIENT_ID ?? raw.auth0?.mgmtClientId ?? '',
     mgmtClientSecret: process.env.AUTH0_MGMT_CLIENT_SECRET ?? raw.auth0?.mgmtClientSecret ?? '',
   },

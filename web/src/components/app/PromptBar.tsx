@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { Button } from '../ui/Button';
+import { FIELD } from '../ui/Input';
 
 interface Props {
   busy: string | null;
@@ -20,11 +22,11 @@ export function PromptBar({ busy, onGenerate, onModify }: Props) {
   const disabled = busy !== null || prompt.trim() === '';
 
   return (
-    <header className="flex items-center gap-2 border-b border-border bg-bg-panel px-3.5 py-2.5">
+    <header className="flex items-center gap-2 border-b border-border bg-bg-panel px-4 py-2.5">
       <span className="mr-1.5 whitespace-nowrap font-bold tracking-wide text-accent">Zendai</span>
       <input
         type="text"
-        className="flex-1 rounded-md border border-border bg-bg px-2.5 py-1.5 text-[13px] text-text placeholder:text-text-faint focus:border-accent focus:outline-none"
+        className={`flex-1 ${FIELD}`}
         value={prompt}
         placeholder='Describe a 3D scene… e.g. "a gold torus knot spinning over a dark floor"'
         onChange={(event) => setPrompt(event.target.value)}
@@ -32,12 +34,12 @@ export function PromptBar({ busy, onGenerate, onModify }: Props) {
           if (event.key === 'Enter' && !disabled) onGenerate(prompt.trim());
         }}
       />
-      <button type="button" className="btn btn-primary" disabled={disabled} onClick={() => onGenerate(prompt.trim())}>
+      <Button variant="primary" type="button" disabled={disabled} onClick={() => onGenerate(prompt.trim())}>
         Generate
-      </button>
-      <button type="button" className="btn btn-secondary" disabled={disabled} onClick={() => onModify(prompt.trim())}>
+      </Button>
+      <Button variant="secondary" type="button" disabled={disabled} onClick={() => onModify(prompt.trim())}>
         Modify
-      </button>
+      </Button>
     </header>
   );
 }
