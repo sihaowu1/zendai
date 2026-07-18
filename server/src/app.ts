@@ -3,7 +3,7 @@ import cors from 'cors';
 import { auth0Configured, config, rendersDir } from './config';
 import { ensureDir } from './utils/fsx';
 import { aiAvailable } from './ai/client';
-import { optionalAuth } from './auth/middleware';
+import { authErrorHandler, optionalAuth } from './auth/middleware';
 import { generateRouter } from './routes/generate';
 import { blenderRouter } from './routes/blender';
 import { exportRouter } from './routes/export';
@@ -31,6 +31,7 @@ export function createApp(): express.Express {
   api.use(blenderRouter);
   api.use(exportRouter);
   app.use('/api', api);
+  app.use(authErrorHandler);
 
   // Rendered MP4s are served statically so the browser can download them.
   app.use('/renders', express.static(ensureDir(rendersDir)));

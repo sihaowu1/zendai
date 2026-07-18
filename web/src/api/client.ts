@@ -31,10 +31,24 @@ export function setAccessTokenGetter(getter: AccessTokenGetter | null): void {
   accessTokenGetter = getter;
 }
 
-async function authHeaders(): Promise<Record<string, string>> {
-  if (!accessTokenGetter) return {};
+async function authHeaders(options?: { required?: boolean }): Promise<Record<string, string>> {
+  if (!accessTokenGetter) {
+    if (options?.required) {
+      throw new Error(
+        'Not signed in (no Auth0 token). Log out and log back in with GitHub, and confirm VITE_AUTH0_AUDIENCE matches an Auth0 API identifier.',
+      );
+    }
+    return {};
+  }
   const token = await accessTokenGetter();
-  if (!token) return {};
+  if (!token) {
+    if (options?.required) {
+      throw new Error(
+        'Could not get an Auth0 API access token. Create an Auth0 API with identifier matching VITE_AUTH0_AUDIENCE, authorize this SPA, then log out and log in again.',
+      );
+    }
+    return {};
+  }
   return { Authorization: `Bearer ${token}` };
 }
 
@@ -55,12 +69,12 @@ async function getJson<T>(path: string): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-async function postJson<T>(path: string, body: unknown): Promise<T> {
+async function postJson<T>(path: string, body: unknown, options?: { requireAuth?: boolean }): Promise<T> {
   const response = await fetch(path, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      ...(await authHeaders()),
+      ...(await authHeaders({ required: options?.requireAuth })),
     },
     body: JSON.stringify(body),
   });
@@ -100,3 +114,34 @@ export async function exportCodeZip(code: string, blenderCode: string): Promise<
   if (!response.ok) throw await parseError(response);
   return response.blob();
 }
+
+export interface GitHubLinkedRepo {
+  owner: string;
+  repo: string;
+  url: string;
+  defaultBranch: string;
+}
+
+export interface GitHubCommitResult {
+  commitUrl: string;
+  sha: string;
+}
+
+export interface GitHubCreateResult extends GitHubLinkedRepo, GitHubCommitResult {}
+
+export interface GitHubProjectPayload {
+  code: string;
+  blenderCode?: string;
+  title?: string;
+  message?: string;
+}
+
+export const githubCreateRepo = (body: GitHubProjectPayload & { name: string; private?: boolean }) =>
+  postJson<GitHubCreateResult>('/api/export/github/create', body, { requireAuth: true });
+
+export const githubLinkRepo = (fullName: string) =>
+  postJson<GitHubLinkedRepo>('/api/export/github/link', { fullName }, { requireAuth: true });
+
+export const githubCommit = (
+  body: GitHubProjectPayload & { owner: string; repo: string; branch?: string },
+) => postJson<GitHubCommitResult>('/api/export/github/commit', body, { requireAuth: true });

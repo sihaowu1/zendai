@@ -626,6 +626,53 @@ body,
   text-align: center;
 }
 
+.app .github-setup,
+.app .github-linked {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.app .github-setup label,
+.app .github-linked label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.app .github-private {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px !important;
+  font-size: 12px !important;
+  color: var(--text) !important;
+}
+
+.app .github-mode-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.app .github-mode-toggle button {
+  background: var(--bg);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+}
+
+.app .github-mode-toggle button.is-active {
+  background: var(--bg-raised);
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.app .github-linked a,
+.app .github-setup a {
+  color: var(--accent);
+}
+
 /* ---- blender ---- */
 .app .dot {
   width: 8px;
