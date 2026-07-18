@@ -5,10 +5,13 @@ import { Button, ButtonLink } from './ui/Button';
 import { PANEL, PANEL_HEADER } from './ui/Panel';
 import { FIELD, FIELD_LABEL } from './ui/Input';
 
+import type { ModelFormat } from '../viewport/exportScene';
+
 interface Props {
   busy: string | null;
   mp4Job: Mp4JobState | null;
   onExportCode: () => void;
+  onExportModel: (format: ModelFormat) => void;
   onExportMp4: (settings: RenderSettings) => void;
 }
 
@@ -23,7 +26,7 @@ const RESOLUTIONS = [
  * Export workflows: download the project as code (ZIP) or render it to MP4
  * through the Remotion pipeline, with live progress and a download link.
  */
-export function ExportPanel({ busy, mp4Job, onExportCode, onExportMp4 }: Props) {
+export function ExportPanel({ busy, mp4Job, onExportCode, onExportModel, onExportMp4 }: Props) {
   const [fps, setFps] = useState(30);
   const [duration, setDuration] = useState(6);
   const [resolution, setResolution] = useState(0);
@@ -37,6 +40,19 @@ export function ExportPanel({ busy, mp4Job, onExportCode, onExportMp4 }: Props) 
       <Button variant="primary" type="button" disabled={busy !== null} onClick={onExportCode}>
         Export code (.zip)
       </Button>
+
+      <h3 className={PANEL_HEADER}>3D Model</h3>
+      <div className="grid grid-cols-3 gap-1.5">
+        <Button variant="secondary" type="button" disabled={busy !== null} onClick={() => onExportModel('glb')}>
+          .glb
+        </Button>
+        <Button variant="secondary" type="button" disabled={busy !== null} onClick={() => onExportModel('obj')}>
+          .obj
+        </Button>
+        <Button variant="secondary" type="button" disabled={busy !== null} onClick={() => onExportModel('stl')}>
+          .stl
+        </Button>
+      </div>
 
       <div className="grid grid-cols-3 gap-1.5">
         <label className={FIELD_LABEL}>

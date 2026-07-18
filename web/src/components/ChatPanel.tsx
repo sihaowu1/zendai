@@ -28,6 +28,12 @@ interface Props {
   onGenerate: (prompt: string, image?: ReferenceImage) => void;
   /** Omit or set showModify=false on Video — Enter then runs Generate/Animate. */
   onModify?: (prompt: string, image?: ReferenceImage) => void;
+  /**
+   * Enter/submit routing. When provided (Model screen), it decides generate
+   * vs modify per message instead of always calling `onModify` — see
+   * `useSceneProject`'s `route`.
+   */
+  onSmartSend?: (prompt: string, image?: ReferenceImage) => void;
   /** Primary action label (default Generate). Video screen uses Animate. */
   generateLabel?: string;
   modifyLabel?: string;
@@ -84,6 +90,7 @@ export function ChatPanel({
   status,
   onGenerate,
   onModify,
+  onSmartSend,
   generateLabel = 'Generate',
   modifyLabel = 'Modify',
   placeholder = 'Ask to modify the model, or generate a new one…',
@@ -176,7 +183,7 @@ export function ChatPanel({
     closeCamera();
   }, [closeCamera]);
 
-  const send = (kind: 'generate' | 'modify') => {
+  const send = (kind: 'generate' | 'modify' | 'auto') => {
     const prompt = input.trim();
     if (!prompt) return;
     const image = allowImageAttachment ? attachedImage : null;
@@ -187,7 +194,10 @@ export function ChatPanel({
     setInput('');
     setAttachedImage(null);
     if (kind === 'generate') onGenerate(prompt, image?.ref);
-    else onModify?.(prompt, image?.ref);
+    else if (kind === 'modify') onModify?.(prompt, image?.ref);
+    else if (onSmartSend) onSmartSend(prompt, image?.ref);
+    else if (canModify) onModify?.(prompt, image?.ref);
+    else onGenerate(prompt, image?.ref);
   };
 
   return (
@@ -247,7 +257,7 @@ export function ChatPanel({
         className={`flex flex-shrink-0 flex-col ${COMPOSER}`}
         onSubmit={(event) => {
           event.preventDefault();
-          if (!disabled) send(primaryKind);
+          if (!disabled) send(onSmartSend ? 'auto' : primaryKind);
         }}
       >
         {allowImageAttachment && attachedImage && (
@@ -274,7 +284,7 @@ export function ChatPanel({
           onKeyDown={(event) => {
             if (event.key === 'Enter' && !event.shiftKey && !disabled) {
               event.preventDefault();
-              send(primaryKind);
+              send(onSmartSend ? 'auto' : primaryKind);
             }
           }}
           onPaste={(event) => {

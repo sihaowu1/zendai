@@ -1,176 +1,156 @@
-# Zendai
+<div align="center">
 
-AI-powered, **code-based** 3D generation and video-editing system. A prompt
-goes to an AI agent that writes a Three.js/WebGL scene module — never an image
-or a video-generation model — that stays live-editable, tunable through
-sliders/switches, exportable as code, and renderable to MP4 through Remotion.
+<img src="assets/logo.png" width="240" height="240">
 
-No AI image/video generation service is used anywhere in this pipeline. Every
-visual is produced by code that runs in a real WebGL renderer.
+AI-powered 3D generation from a single prompt.
 
-## What it does
+[![GitHub stars](https://img.shields.io/github/stars/sihaowu1/zendai?style=social)](https://github.com/sihaowu1/zendai)
+[![GitHub forks](https://img.shields.io/github/forks/sihaowu1/zendai?style=social)](https://github.com/sihaowu1/zendai/network/members)
 
-1. You type a prompt ("a spinning gold torus knot") into the code editor's
-   prompt bar.
-2. An AI agent (Claude, using the `threejs-modelling` skill) or, offline, a
-   deterministic template generator writes a **Three.js model module**.
-3. The model module renders live in a WebGL viewport in the browser. Its
-   `PARAMS` block is parsed into sliders, switches, and color pickers that
-   patch the code directly when moved.
-4. You can edit the code by hand, ask the AI to modify it, export the whole
-   project as code, or render it to an MP4 with Remotion.
+</div>
 
-## Repository structure
+---
+
+**Don't settle for black-box mesh generators you can't edit.**
+
+Zendai turns natural language prompts (or reference photos) into fully editable Three.js code. Component-based, tunable, and running live in the browser. Every result is real code you can tweak, remix, animate, and export.
+
+[View the Devpost](https://devpost.com)
+
+## Key Features
+
+### Model Generation
+
+Describe what you want and get a live 3D scene back instantly.
+
+- **Prompt to 3D**: Natural language descriptions become component-based Three.js scenes with named parts.
+- **Image to 3D**: Upload a reference photo and the img2threejs pipeline decomposes it into primitives, extracts PBR materials, and reconstructs it as editable code.
+- **Tunable Sliders**: Every model exposes per-part size, color, and material parameters as real-time sliders.
+- **Code Editor**: Full CodeMirror editor with syntax highlighting. Edit the generated code directly and see changes live.
+- **Iterative Refinement**: Follow-up prompts modify the existing model without rebuilding from scratch.
+
+### Video & Animation
+
+Animate models and compose them into exportable videos.
+
+- **Natural Language Animation**: Describe the motion you want and the AI adds one-shot timeline animation.
+- **Timeline Composer**: Drag and arrange animated clips on a visual timeline.
+- **MP4 Export**: Server-side rendering via Remotion produces production-quality video.
+
+### Export & Collaboration
+
+Ship your work anywhere.
+
+- **GitHub Integration**: Push models to a linked repo, pull remote state, version your scenes.
+- **Geometry Export**: Download as GLB, OBJ, or STL for use in any 3D pipeline.
+- **Code Export**: Standalone JS/TS bundles ready to drop into any Three.js project.
+
+## Tech Stack
+
+| Layer | Technologies |
+|-------|-------------|
+| Frontend framework | React 18, TypeScript, Vite |
+| Styling and UI | Tailwind CSS v4, Lucide icons, Phosphor icons |
+| 3D and visualization | Three.js, WebGL, OrbitControls |
+| Code editor | CodeMirror 6 (JavaScript + Python, One Dark theme) |
+| Client state | React hooks, localStorage persistence |
+| Auth | Auth0 (GitHub OAuth), optional |
+| Backend framework | Express, Node.js, TypeScript (tsx) |
+| AI model | Claude Sonnet 4.5 via OpenRouter (Anthropic SDK) |
+| AI skills | Markdown skill files loaded as system prompts |
+| Video rendering | Remotion (server-side MP4 export) |
+| Database | MongoDB Atlas (optional, marketplace only) |
+| GitHub integration | Octokit (create repos, commit, pull) |
+| Geometry export | Three.js exporters (GLB, OBJ, STL) |
+| Monorepo | npm workspaces (shared, server, web, remotion) |
+
+## How It Works
+
+### Text to 3D workflow
 
 ```
-hack-the-6ix/
-├── shared/            AI/browser/server-agnostic core: types, PARAMS↔slider parsing,
-│                       scene-module validation, deterministic scene-code templates
-├── skills/             Claude Skills (also valid as Claude Code skills)
-│   ├── threejs-modelling/  generates/edits the Three.js model module
-│   ├── img2threejs/        reconstructs a model from a reference image
-│   └── threejs-animation/  one-shot timeline animations (module duplicate)
-├── server/            Express API: AI agents, Remotion renderer, export
-│   └── src/
-│       ├── config/         merges config/default.config.json with env overrides
-│       ├── ai/              Anthropic client, skill loader, fenced-code-block extraction
-│       ├── agents/          orchestrator, model/animation agents, offline fallback
-│       ├── remotion/        bundles + renders the Remotion project to MP4
-│       ├── export/          code (ZIP) and MP4 export flows
-│       ├── routes/          /api/generate, /api/modify, /api/export/*
-│       └── utils/           filesystem, background job tracker, logger
-├── web/                Front end: studio UI (model / video / export screens)
-│   └── src/
-│       ├── components/       screens, chat, controls, timeline, export UI
-│       ├── viewport/         live Three.js/WebGL preview runtime
-│       ├── state/            useSceneProject: the single client-side state hook
-│       └── api/               typed fetch client for the server API
-├── remotion/           Renders a generated scene module to MP4
-│   └── src/
-│       ├── index.ts, Root.tsx    registers the GeneratedScene composition
-│       ├── GeneratedScene.tsx     drives buildScene/updateScene inside <ThreeCanvas>
-│       └── generated/             scene-module.js — overwritten per render by the server
-├── config/             default.config.json — ports, AI model, Remotion defaults
-└── tasks/               build-plan notes (not part of the running app)
+Prompt
+  -> Skill selection (threejs-modelling)
+  -> Claude generates Three.js scene module
+  -> Validator enforces contract
+  -> Hot-loaded in WebGL viewport
+  -> Live 60fps rendering with tunable sliders
 ```
 
-### How the modules interact
+### Image to 3D workflow
 
 ```
-web (editor + controls + viewport)
-   │  fetch /api/*
-   ▼
-server/routes  ─▶  server/agents (orchestrator)
-   │                    │
-   │                    ├─▶ server/ai (Claude + modelling / animation skills)
-   │                    │        │ offline fallback ▶ server/agents/templateFallback (shared/sceneTemplate)
-   │                    └─▶ server/remotion/renderer ─▶ remotion/ (bundle + render) ─▶ renders/*.mp4
-   ▼
-server/export (code ZIP via shared templates, MP4 job polling)
+Reference photo
+  -> img2threejs skill (structured decomposition)
+  -> Component inventory + material extraction
+  -> Proportion mapping + primitive assembly
+  -> Validated Three.js scene module
+  -> Live editable model in viewport
 ```
 
-`shared/` is imported by both `server` and `web` (npm workspace package
-`@motionforge/shared`) so the scene-module contract, tunable parsing, and
-validator are defined exactly once.
-
-## Install
-
-Requires Node.js 20+ and npm.
+## Quick Start
 
 ```bash
+# 1. Install dependencies
 npm install
+
+# 2. Configure environment
 cp .env.example .env
+# add your OPENROUTER_API_KEY (minimum for AI features; app works without it via offline fallback)
+
+# 3. Start dev server (backend + frontend)
+npm run dev
 ```
 
-## Configure
+- Frontend: http://localhost:5173
+- Backend: http://localhost:5174
 
-Edit `.env`:
+## Environment Variables
 
-```bash
-OPENROUTER_API_KEY=sk-or-v1-...   # omit to run fully offline (template fallback)
-# PORT=5174
-# ANTHROPIC_MODEL=anthropic/claude-opus-4-8
-# REMOTION_GL=angle
+| Variable | Purpose | Required |
+|----------|---------|----------|
+| `OPENROUTER_API_KEY` | Claude API access for AI generation | No (offline fallback) |
+| `VITE_AUTH0_DOMAIN` | Auth0 tenant domain | No |
+| `VITE_AUTH0_CLIENT_ID` | Auth0 SPA client ID | No |
+| `VITE_AUTH0_AUDIENCE` | Auth0 API audience | No |
+| `AUTH0_MGMT_CLIENT_ID` | Auth0 M2M client (GitHub push) | No |
+| `AUTH0_MGMT_CLIENT_SECRET` | Auth0 M2M secret (GitHub push) | No |
+| `MONGODB_URI` | MongoDB Atlas (marketplace) | No |
+| `ANTHROPIC_MODEL` | Model override (default: `anthropic/claude-sonnet-4.5`) | No |
+
+## Repo Layout
+
+```
+.
+├── config/              Default runtime configuration
+├── remotion/            Remotion composition for MP4 export
+├── server/              Express backend
+│   └── src/
+│       ├── agents/      AI agents (scene, animation, critique, intent, orchestrator)
+│       ├── ai/          Client setup, skill loader, code extraction
+│       ├── auth/        Auth0 JWT middleware
+│       ├── routes/      API routes (generate, animate, export, github, marketplace)
+│       └── utils/       Logging, tracing
+├── shared/              Types, validation, templates, tunables parser
+├── skills/              AI skill definitions (system prompts)
+│   ├── img2threejs/     Image-to-3D reconstruction
+│   ├── threejs-modelling/   Text-to-3D modelling
+│   ├── threejs-animation/   Animation generation
+│   └── procedural-patterns/ Geometry and material recipes
+├── web/                 Vite + React frontend
+│   └── src/
+│       ├── components/  UI (ChatPanel, ModelsList, screens, timeline)
+│       ├── editor/      CodeMirror scene editor
+│       ├── landing/     Marketing landing page
+│       ├── state/       useSceneProject (all editor state)
+│       └── viewport/    Three.js WebGL runtime and exporters
+└── .env.example         Environment template
 ```
 
-Defaults (port, AI model, Remotion fps/resolution) live in
-`config/default.config.json`; the `.env` variables above override them. Without
-`ANTHROPIC_API_KEY` the server still runs end-to-end using the deterministic
-offline generator in `server/src/agents/templateFallback.ts`.
+## Team
 
-## Run
+Derek Lau, Sihao Wu, Ethan Yang, Ian Yeh
 
-```bash
-npm run dev            # server (http://localhost:5174) + web (Vite, proxied) together
-```
+## License
 
-Open the printed Vite URL. Type a prompt, watch the viewport update, drag a
-slider, edit the code directly, or export.
-
-Other scripts:
-
-```bash
-npm run dev:server        # server only
-npm run dev:web           # web only
-npm run remotion:studio   # preview the Remotion composition standalone
-npm run typecheck         # typecheck every workspace
-```
-
-## How 3D code generation works
-
-`skills/threejs-modelling/SKILL.md` is both a Claude Skill and this project's
-system prompt. It defines a strict contract: a self-contained Three.js module
-exporting `PARAMS`, optional `CAMERA`, `buildScene(ctx)`, and
-`updateScene(ctx)` (a pure function of `time`, no `Math.random()`/`Date`, so
-Remotion can render frames independently and out of order).
-`server/src/agents/modelAgent.ts` sends the prompt to Claude with that skill as
-the system prompt, extracts the fenced JavaScript block, validates the module
-against the contract (`shared/src/validate.ts`), and retries once with the
-validator's errors if it fails. Without an API key,
-`server/src/agents/templateFallback.ts` maps prompt keywords onto the same
-contract using `shared/src/sceneTemplate.ts` so the app never blocks on AI
-access.
-
-## How tunable elements connect to sliders and switches
-
-Every `PARAMS` entry annotated `@tunable` in a JSDoc comment
-(`skills/threejs-modelling/SKILL.md` documents the annotation grammar) is
-parsed by `shared/src/tunables.ts`: numbers need `@min`/`@max`/`@step` and
-render as sliders, plain booleans render as switches, and single-quoted hex
-strings render as color pickers (`web/src/controls/*.tsx`,
-`ControlsPanel.tsx`). Moving a control calls `patchParam(code, name, value)`,
-which rewrites just that literal in the `PARAMS` block and pushes the new code
-back into the editor and viewport — a slider drag *is* a code edit.
-
-## Exporting generated code
-
-The export screen posts to `POST /api/export/code`, handled by
-`server/src/export/codeExport.ts` + `exportTemplates.ts`, which streams a ZIP
-containing the Three.js module and a minimal runnable HTML/package wrapper so
-the exported project runs standalone outside Zendai. GitHub push uses the same
-file packing under `models/<slug>/`.
-
-## Generating and exporting an MP4 with Remotion
-
-The **Render MP4** button posts to `POST /api/export/mp4` with the current
-code and fps/duration/resolution. `server/src/export/mp4Export.ts` validates
-the module, merges those settings with config defaults, then calls
-`server/src/remotion/renderer.ts`, which:
-
-1. writes the scene module to `remotion/src/generated/scene-module.js`,
-2. bundles the Remotion project (`@remotion/bundler`),
-3. renders the `GeneratedScene` composition (`remotion/src/GeneratedScene.tsx`,
-   which runs the same `buildScene`/`updateScene` inside `@remotion/three`'s
-   `<ThreeCanvas>`, driven by `frame / fps` instead of wall-clock time) with
-   `@remotion/renderer` in headless Chrome (`gl: angle` for WebGL) to H.264.
-
-The client polls `GET /api/export/mp4/:jobId` for progress and gets back a
-`/renders/<file>.mp4` URL to download once done.
-
-## Where the Claude Skills are
-
-Under `skills/` (`threejs-modelling`, `img2threejs`, `threejs-animation`).
-They are loaded verbatim as system prompts by
-`server/src/ai/skills.ts` and are also valid Claude Code skill files if you
-want to drive the same generation logic directly from a Claude Code session
-against this repo.
+MIT. Built for Hack the 6ix 2026.

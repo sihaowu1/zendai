@@ -38,7 +38,7 @@ export default function Hero() {
           </span>
           <span className="font-mono-label text-slate-400">v1.0</span>
           <span className="h-px w-8 bg-royal-blue/40" />
-          <span className="font-mono-label text-white">AI-Powered 3D Studio</span>
+          <span className="font-mono-label text-white">Code-First 3D Engine</span>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
@@ -60,8 +60,9 @@ export default function Hero() {
               </span>
             </h1>
             <p className="mt-6 max-w-md text-base lg:text-lg leading-relaxed text-slate-400">
-              Describe what you want, get a fully editable 3D scene back.
-              Every result is real code you can tweak, remix, and make your own.
+              No meshes. No black-box AI assets. Every scene is pure Three.js
+              code you can read, edit, tune with sliders, and export as .glb,
+              .obj, or .stl for any pipeline.
             </p>
 
             <div className="mt-9 flex flex-wrap items-center gap-3">

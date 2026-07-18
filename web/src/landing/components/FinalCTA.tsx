@@ -17,8 +17,8 @@ export default function FinalCTA() {
             <span className="inline-block ml-1 animate-fade-up">.</span>
           </h2>
           <p className="mt-6 max-w-xl text-base lg:text-lg leading-relaxed text-slate-400">
-            Create your first 3D scene in seconds. No installs, no learning
-            curve. Just describe what you want and make it yours.
+            Prompt to code to 3D model — in seconds. Export as .glb for Unity,
+            .obj for CAD, or drop the code straight into your app. No installs.
           </p>
 
           <div className="mt-10">

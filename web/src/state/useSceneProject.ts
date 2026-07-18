@@ -5,6 +5,7 @@ import {
   DEFAULT_SCENE_CODE,
   applyCameraSpec,
   deleteLayer as deleteLayerInCode,
+  extractLayers,
   fuseSceneModules,
   fuseSlugs,
   parseAnimationDuration,
@@ -28,6 +29,7 @@ import {
   type TimelineClip,
   type TimelineLane,
 } from '../components/timeline/timelineMath';
+import { exportSceneAs, type ModelFormat } from '../viewport/exportScene';
 import { useTimelinePlayback } from '../components/timeline/useTimelinePlayback';
 import type { TrackOverlay } from '../viewport/trackOverlay';
 
@@ -88,6 +90,13 @@ export interface SceneModel {
    * the base `code` stays frozen.
    */
   animation?: AnimationInstance;
+  /**
+   * When set, this row is a statically-imported GLB/glTF asset (e.g. a
+   * Blender export) rather than AI-generated code. `code` stays a valid
+   * empty scene module so the rest of the pipeline keeps working; the
+   * viewport renders the asset via `assetUrl` instead of evaluating `code`.
+   */
+  assetUrl?: string;
 }
 
 /** A timeline clip on a hierarchical part lane. */
@@ -186,13 +195,55 @@ function snapshotLeavesForMerge(models: SceneModel[], selectedIds: string[]): Me
   return leaves;
 }
 
+const IMPORTED_MODEL_CODE = `// Imported model — rendered from the attached GLB/glTF asset, not from this code.
+export const PARAMS = {};
+export function buildScene() { return {}; }
+export function updateScene() {}
+`;
+
+function nameFromFileName(fileName: string): string {
+  const base = fileName.replace(/\.[^.]+$/, '').trim();
+  return base || 'Imported model';
+}
+
+const MODELS_STORAGE_KEY = 'motionforge:models';
+
+function loadPersistedModels(): SceneModel[] {
+  try {
+    const raw = localStorage.getItem(MODELS_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as SceneModel[];
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch { /* ignore corrupt data */ }
+  return [makeDefaultModel()];
+}
+
+function persistModels(models: SceneModel[]): void {
+  try {
+    // Don't persist imported asset URLs (blob: URLs are session-only)
+    const serializable = models.map(({ assetUrl, ...rest }) => rest);
+    localStorage.setItem(MODELS_STORAGE_KEY, JSON.stringify(serializable));
+  } catch { /* storage full or unavailable */ }
+}
+
 export function useSceneProject() {
-  const [models, setModels] = useState<SceneModel[]>(() => [makeDefaultModel()]);
-  const [activeModelId, setActiveModelId] = useState<string>(DEFAULT_MODEL_ID);
-  const [selectedModelIds, setSelectedModelIds] = useState<string[]>([DEFAULT_MODEL_ID]);
+  const [models, setModels] = useState<SceneModel[]>(loadPersistedModels);
+  const [activeModelId, setActiveModelId] = useState<string>(() => {
+    const persisted = loadPersistedModels();
+    return persisted[0]?.id ?? DEFAULT_MODEL_ID;
+  });
+  const [selectedModelIds, setSelectedModelIds] = useState<string[]>(() => {
+    const persisted = loadPersistedModels();
+    return [persisted[0]?.id ?? DEFAULT_MODEL_ID];
+  });
   const [selectedLayer, setSelectedLayer] = useState<string | null>(null);
   /** When a merge is active, which embedded child copy is focused for editing. */
   const [focusedChildId, setFocusedChildId] = useState<string | null>(null);
+
+  useEffect(() => {
+    persistModels(models);
+  }, [models]);
   const [clips, setClips] = useState<Clip[]>([]);
   const [clipboardClip, setClipboardClip] = useState<Clip | null>(null);
   const [collapsedLanes, setCollapsedLanes] = useState<Set<string>>(() => new Set());
@@ -396,7 +447,7 @@ export function useSceneProject() {
           ...current,
           {
             id,
-            name: nameFromPrompt(prompt, current.length + 1),
+            name: result.title || nameFromPrompt(prompt, current.length + 1),
             code: result.code,
             createdAt: Date.now(),
           },
@@ -417,22 +468,47 @@ export function useSceneProject() {
   );
 
   const modify = useCallback(
-    (prompt: string, image?: ReferenceImage) =>
+    (prompt: string, image?: ReferenceImage, targetModelId?: string) =>
       run('Modifying model…', async () => {
-        const result = await api.modify(prompt, code, image);
+        const targetId = targetModelId ?? activeModelId;
+        const target = models.find((m) => m.id === targetId) ?? activeModel;
+        const result = await api.modify(prompt, target.code, image);
         setModels((current) =>
           current.map((m) =>
-            m.id === activeModelId
+            m.id === target.id
               ? {
                   ...m,
                   code: result.code,
+                  ...(result.title ? { name: result.title } : {}),
                 }
               : m,
           ),
         );
+        if (target.id !== activeModelId) {
+          setActiveModelId(target.id);
+          setSelectedModelIds([target.id]);
+        }
         setStatus({ kind: 'info', text: 'Model modified by the AI agent.' });
       }),
-    [run, code, activeModelId],
+    [run, models, activeModel, activeModelId],
+  );
+
+  const route = useCallback(
+    async (prompt: string, image?: ReferenceImage) => {
+      const modelContext = models.map((m) => ({ id: m.id, name: m.name, layers: extractLayers(m.code) }));
+      let intent: Awaited<ReturnType<typeof api.classifyIntent>> = { intent: 'generate' };
+      try {
+        intent = await api.classifyIntent(prompt, modelContext, activeModelId);
+      } catch {
+        intent = { intent: 'generate' };
+      }
+      if (intent.intent === 'modify' && models.some((m) => m.id === intent.targetModelId)) {
+        await modify(prompt, image, intent.targetModelId);
+      } else {
+        await generate(prompt, image);
+      }
+    },
+    [models, activeModelId, modify, generate],
   );
 
   /**
@@ -602,6 +678,24 @@ export function useSceneProject() {
     );
     setClips((current) => current.filter((c) => !(c.modelId === modelId && c.part === layerName)));
     setSelectedLayer((current) => (current === layerName ? null : current));
+  }, []);
+
+  /** Removes an entire model from the project. */
+  const deleteModel = useCallback((modelId: string) => {
+    setModels((current) => {
+      const next = current.filter((m) => m.id !== modelId);
+      // Drop deleted models from any merge's embedded children.
+      const cleaned = next.map((m) => {
+        if (!m.children?.length) return m;
+        const children = m.children.filter((c) => c.id !== modelId);
+        if (children.length === m.children.length) return m;
+        return { ...m, children: children.length ? children : undefined };
+      });
+      if (cleaned.length === 0) return [makeDefaultModel()];
+      return cleaned;
+    });
+    setSelectedModelIds((ids) => ids.filter((id) => id !== modelId));
+    setActiveModelId((current) => (current === modelId ? DEFAULT_MODEL_ID : current));
   }, []);
 
   /** Rename a layer inside an embedded merge child, then re-fuse. */
@@ -819,6 +913,24 @@ export function useSceneProject() {
     });
   }, []);
 
+  const importModel = useCallback((file: File) => {
+    const id = makeId();
+    const assetUrl = URL.createObjectURL(file);
+    setModels((current) => [
+      ...current,
+      {
+        id,
+        name: nameFromFileName(file.name),
+        code: IMPORTED_MODEL_CODE,
+        createdAt: Date.now(),
+        assetUrl,
+      },
+    ]);
+    setActiveModelId(id);
+    setSelectedModelIds([id]);
+    setStatus({ kind: 'info', text: `Imported “${file.name}”.` });
+  }, []);
+
   const exportCode = useCallback(
     (format: api.CodeExportFormat = 'standalone') =>
       run('Exporting code…', async () => {
@@ -826,6 +938,16 @@ export function useSceneProject() {
         const fileName = `zendai-scene-${format}.zip`;
         downloadBlob(blob, fileName);
         setStatus({ kind: 'info', text: `Project exported as ${fileName}.` });
+      }),
+    [run, code],
+  );
+
+
+  const exportModel = useCallback(
+    (format: ModelFormat) =>
+      run(`Exporting ${format.toUpperCase()}…`, async () => {
+        await exportSceneAs(code, format);
+        setStatus({ kind: 'info', text: `Scene exported as scene.${format}.` });
       }),
     [run, code],
   );
@@ -974,10 +1096,14 @@ export function useSceneProject() {
     previewModelName,
     generate,
     modify,
+    route,
     animate,
     aspectRatio,
     setAspectRatio,
+    importModel,
+    deleteModel,
     exportCode,
+    exportModel,
     exportMp4,
     userCamera,
     setUserCamera,
@@ -999,8 +1125,8 @@ function downloadBlob(blob: Blob, name: string): void {
 export function resolveViewportScenes(
   model: SceneModel,
   _allModels: SceneModel[] = [],
-): Array<{ id: string; code: string }> {
-  return [{ id: model.id, code: model.code }];
+): Array<{ id: string; code: string; assetUrl?: string }> {
+  return [{ id: model.id, code: model.code, assetUrl: model.assetUrl }];
 }
 
 /** Build timeline lanes: singular model = one row; merge = model + children (1 deep). */

@@ -5,22 +5,22 @@ const STEPS = [
   {
     icon: PenLine,
     label: "Describe",
-    description: "Tell Zendai what you want in plain English — a landscape, a product shot, an animation.",
+    description: "Type a prompt or snap a reference photo. The AI writes Three.js code, not a mesh blob.",
   },
   {
     icon: Wand2,
     label: "Generate",
-    description: "Get a complete 3D scene back in seconds, ready to preview and play with.",
+    description: "Get a complete scene module — real JavaScript with named parts, typed params, and a live preview.",
   },
   {
     icon: SlidersHorizontal,
-    label: "Refine",
-    description: "Tweak colors, timing, camera angles — change exactly what you want without starting over.",
+    label: "Tune",
+    description: "Drag sliders for size, color, and material. Every change patches the code directly — no regeneration.",
   },
   {
     icon: Download,
     label: "Export",
-    description: "Drop it into your website, app, or render a video for social media.",
+    description: "Download as .glb, .obj, or .stl for any 3D pipeline, or render to MP4 with Remotion.",
   },
 ];
 

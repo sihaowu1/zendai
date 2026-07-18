@@ -34,12 +34,16 @@ interface Props {
   userCamera?: CameraSpec | null;
   /** Fired when the user finishes orbiting/panning/zooming. */
   onUserCameraChange?: (camera: CameraSpec) => void;
+  /** When false, disables orbit controls so the preview is view-only. Default true. */
+  interactive?: boolean;
 }
 
 /** Imperative escape hatch for axes toggle and reading the live orbit for MP4 export. */
 export interface ViewportHandle {
   setAxesVisible: (visible: boolean) => void;
   getCameraSpec: () => CameraSpec | null;
+  getCameraHandle: () => ObjectHandle | null;
+  clearCameraOverride: () => void;
 }
 
 /**
@@ -47,7 +51,7 @@ export interface ViewportHandle {
  * output) and hot-reloads them into the SceneRuntime.
  */
 export const Viewport = forwardRef<ViewportHandle, Props>(function Viewport(
-  { code, scenes, onModelClick, time, trackOverlays, showToolbar = false, userCamera, onUserCameraChange },
+  { code, scenes, onModelClick, time, trackOverlays, showToolbar = false, userCamera, onUserCameraChange, interactive = true },
   ref,
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -70,6 +74,8 @@ export const Viewport = forwardRef<ViewportHandle, Props>(function Viewport(
     () => ({
       setAxesVisible: (visible) => runtimeRef.current?.setAxesVisible(visible),
       getCameraSpec: () => runtimeRef.current?.getCameraSpec() ?? null,
+      getCameraHandle: () => runtimeRef.current?.getCameraHandle() ?? null,
+      clearCameraOverride: () => runtimeRef.current?.clearCameraOverride(),
     }),
     [],
   );
@@ -82,7 +88,7 @@ export const Viewport = forwardRef<ViewportHandle, Props>(function Viewport(
 
   // Stable signature so object-identity churn on `scenes` doesn't thrash reloads.
   const scenesKey = useMemo(
-    () => resolvedScenes.map((s) => `${s.id}:${s.code}`).join('\0'),
+    () => resolvedScenes.map((s) => `${s.id}:${s.code}:${s.assetUrl ?? ''}`).join('\0'),
     [resolvedScenes],
   );
   const resolvedScenesRef = useRef(resolvedScenes);
@@ -94,6 +100,7 @@ export const Viewport = forwardRef<ViewportHandle, Props>(function Viewport(
     runtime.onError = (err) => setError(err.message);
     runtime.onObjectClick = (point, handle) => onModelClickRef.current?.(point, handle);
     runtime.onCameraChange = (spec) => onUserCameraChangeRef.current?.(spec);
+    if (!interactive) runtime.setControlsEnabled(false);
     runtimeRef.current = runtime;
     const observer = new ResizeObserver(([entry]) => {
       runtime.resize(entry.contentRect.width, entry.contentRect.height);

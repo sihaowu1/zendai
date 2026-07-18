@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { fuseSlugs } from '@motionforge/shared';
+import { UploadSimple } from '@phosphor-icons/react';
 import { ChatPanel } from '../ChatPanel';
 import { ControlsFloater } from '../controls/ControlsFloater';
 import { ResizeHandle } from '../layout/ResizeHandle';
@@ -8,6 +9,7 @@ import { ModelsLayersList } from '../ModelsLayersList';
 import type { useSceneProject } from '../../state/useSceneProject';
 import type { ObjectHandle } from '../../viewport/SceneRuntime';
 import { Viewport } from '../../viewport/Viewport';
+import { IconButton } from '../ui/Button';
 import { PANEL_HEADER } from '../ui/Panel';
 
 interface Props {
@@ -41,9 +43,11 @@ interface ClickSelection {
  */
 export function ModelGenerationScreen({ project }: Props) {
   const [selection, setSelection] = useState<ClickSelection | null>(null);
+  const [addingSlider, setAddingSlider] = useState(false);
   const selectionRef = useRef(selection);
   selectionRef.current = selection;
   const activeModel = project.models.find((m) => m.id === project.activeModelId);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   const leftWidth = useResizable({
     direction: 'horizontal',
@@ -104,6 +108,20 @@ export function ModelGenerationScreen({ project }: Props) {
 
   const floaterTitle = project.focusedChild?.name ?? activeModel?.name ?? 'Model';
 
+  const handleAddSlider = async (name: string) => {
+    setAddingSlider(true);
+    try {
+      await project.modify(
+        `Add a new tunable slider called "${name}". Interpret what "${name}" likely controls on this model, ` +
+        `add a @tunable number PARAM for it with sensible @min/@max/@step and @label, and wire it ` +
+        `into updateScene so it visually affects the relevant parts. Keep all existing params and parts unchanged.`,
+      );
+    } finally {
+      setAddingSlider(false);
+    }
+  };
+
+
   return (
     <main
       className="grid min-h-0 flex-1 grid-cols-[var(--model-left-w)_1px_1fr]"
@@ -120,16 +138,38 @@ export function ModelGenerationScreen({ project }: Props) {
             status={project.status}
             onGenerate={project.generate}
             onModify={project.modify}
+            onSmartSend={project.route}
           />
         </section>
         <ResizeHandle direction="vertical" onPointerDown={chatHeight.startDragging} label="Resize chat panel" />
         <section className="flex min-h-0 flex-1 flex-col gap-2 p-3" aria-label="Models & Layers">
-          <h2
-            className={`flex-shrink-0 ${PANEL_HEADER}`}
-            title="Click to select a model. Shift-click to select several and merge them."
-          >
-            Models &amp; Layers
-          </h2>
+          <div className="flex flex-shrink-0 items-center justify-between gap-2">
+            <h2
+              className={PANEL_HEADER}
+              title="Click to select a model. Shift-click to select several and merge them."
+            >
+              Models &amp; Layers
+            </h2>
+            <IconButton
+              className="h-6 w-6"
+              title="Import a Blender-exported GLB/glTF model"
+              aria-label="Import a Blender-exported GLB/glTF model"
+              onClick={() => importInputRef.current?.click()}
+            >
+              <UploadSimple size={13} weight="bold" aria-hidden="true" />
+            </IconButton>
+            <input
+              ref={importInputRef}
+              type="file"
+              accept=".glb,.gltf,model/gltf-binary,model/gltf+json"
+              className="hidden"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) project.importModel(file);
+                event.target.value = '';
+              }}
+            />
+          </div>
           <div className="min-h-0 flex-1 overflow-y-auto">
             <ModelsLayersList
               models={project.models}
@@ -144,6 +184,7 @@ export function ModelGenerationScreen({ project }: Props) {
               onDeleteLayer={project.deleteModelLayer}
               onRenameMergeChildLayer={project.renameMergeChildLayer}
               onDeleteMergeChildLayer={project.deleteMergeChildLayer}
+              onDeleteModel={project.deleteModel}
             />
           </div>
         </section>
@@ -176,6 +217,8 @@ export function ModelGenerationScreen({ project }: Props) {
           tunables={project.tunables}
           onChange={project.setParam}
           onClose={closeFloater}
+          onAddSlider={handleAddSlider}
+          addingSlider={addingSlider}
         />
       )}
     </main>

@@ -4,27 +4,27 @@ import { Code2, PencilRuler, MonitorPlay, FileCode2, ArrowUpRight } from "lucide
 const FEATURES = [
   {
     icon: Code2,
-    title: "Fully Editable Output",
+    title: "Code, Not Meshes",
     description:
-      "Unlike AI tools that give you a black box, Zendai gives you real code. Change anything — colors, shapes, motion — without starting over.",
+      "Other AI tools spit out opaque meshes you can't touch. Zendai generates real Three.js code — every vertex, every material, every light is a line you can read and change.",
   },
   {
     icon: PencilRuler,
-    title: "Tweak, Don't Regenerate",
+    title: "Tune With Sliders",
     description:
-      "Adjust a single detail without redoing the whole scene. Move a light, shift a color, speed up an animation — one change at a time.",
+      "Every parameter — size, color, roughness, position — is exposed as a live slider. Tweak one value without regenerating the entire scene.",
   },
   {
     icon: MonitorPlay,
-    title: "See Changes Instantly",
+    title: "Instant Live Preview",
     description:
-      "Every edit shows up live in the browser. No waiting for renders, no loading screens — just immediate visual feedback.",
+      "Edits render in real time in your browser. No upload, no queue, no waiting. Change the code and see it immediately in the viewport.",
   },
   {
     icon: FileCode2,
-    title: "Export Anywhere",
+    title: "Export as 3D Models",
     description:
-      "Drop your scene into any web project as a component, or render a polished video ready for social media or presentations.",
+      "Download your scene as .glb for Unity and Blender, .obj for CAD pipelines, or .stl for 3D printing. Or grab the raw code and drop it into any web project.",
   },
 ];
 
@@ -38,11 +38,12 @@ export default function Features() {
           </div>
           <div className="lg:col-span-8">
             <h2 className="font-heading text-3xl sm:text-4xl lg:text-5xl font-bold tracking-[-0.03em] text-white text-balance">
-              You stay in control.
+
+              Pure code. Zero black boxes.
             </h2>
             <p className="mt-4 max-w-xl text-slate-400 leading-relaxed">
-              Most AI 3D tools hand you something you can't change.
-              Zendai gives you results you can actually work with.
+              AI-generated meshes are impossible to edit. Code-generated scenes
+              are impossible to break. That's the difference.
             </p>
           </div>
         </div>

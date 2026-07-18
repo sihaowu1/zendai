@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { CameraSpec, RenderSettings, TunableParam } from '@motionforge/shared';
+import type { ModelFormat } from '../../viewport/exportScene';
 import { RequireAuth } from '../../auth/RequireAuth';
 import { useAuth } from '../../auth/useAuth';
 import { PublishForm } from '../PublishForm';
@@ -30,6 +31,8 @@ export interface ExportScreenProps {
   busy: string | null;
   /** Download ZIP via `useSceneProject.exportCode`. */
   onExportCode: (format: CodeExportFormat) => void;
+  /** Export 3D model via `useSceneProject.exportModel`. */
+  onExportModel: (format: ModelFormat) => void;
   /** Start Remotion MP4 via `useSceneProject.exportMp4`. */
   onExportMp4: (settings: RenderSettings) => void;
   /** The active model's tunables (from `useSceneProject.tunables`), edited via the click floater. */
@@ -105,6 +108,7 @@ export function ExportScreen({
   modelName,
   busy,
   onExportCode,
+  onExportModel,
   onExportMp4,
   tunables,
   onParamChange,
@@ -214,6 +218,22 @@ export function ExportScreen({
           >
             Export code (.zip)
           </Button>
+
+          <h3 className={PANEL_HEADER}>3D Model</h3>
+          <p className="m-0 text-[12px] leading-normal text-text-faint">
+            Export the scene geometry as a standard 3D file for Unity, Blender, CAD, or 3D printing.
+          </p>
+          <div className="grid grid-cols-3 gap-1.5">
+            <Button variant="secondary" type="button" disabled={exportBusy} onClick={() => onExportModel('glb')}>
+              .glb
+            </Button>
+            <Button variant="secondary" type="button" disabled={exportBusy} onClick={() => onExportModel('obj')}>
+              .obj
+            </Button>
+            <Button variant="secondary" type="button" disabled={exportBusy} onClick={() => onExportModel('stl')}>
+              .stl
+            </Button>
+          </div>
 
           {/* Size carries the longest option text ("1080 × 1920 (vertical)"),
               which still clipped at 1.5fr in this sidebar. It gets its own full

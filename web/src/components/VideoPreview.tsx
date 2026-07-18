@@ -63,6 +63,8 @@ export const VideoPreview = forwardRef<ViewportHandle, Props>(function VideoPrev
     () => ({
       setAxesVisible: (visible) => viewportRef.current?.setAxesVisible(visible),
       getCameraSpec: () => viewportRef.current?.getCameraSpec() ?? null,
+      getCameraHandle: () => viewportRef.current?.getCameraHandle() ?? null,
+      clearCameraOverride: () => viewportRef.current?.clearCameraOverride(),
     }),
     [],
   );

@@ -13,7 +13,7 @@ export interface AuthValue {
   configured: boolean;
   isLoading: boolean;
   isAuthenticated: boolean;
-  user: { name?: string; email?: string; picture?: string } | undefined;
+  user: { name?: string; email?: string; picture?: string; sub?: string } | undefined;
   login: (opts?: { screenHint?: 'signup' | 'login'; connection?: string }) => Promise<void>;
   logout: () => void;
   getAccessToken: () => Promise<string | undefined>;

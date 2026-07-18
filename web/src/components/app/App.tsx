@@ -90,6 +90,7 @@ export function App() {
                 modelName={project.models.find((m) => m.id === project.activeModelId)?.name ?? 'Model'}
                 busy={project.busy}
                 onExportCode={project.exportCode}
+                onExportModel={project.exportModel}
                 onExportMp4={project.exportMp4}
                 tunables={project.tunables}
                 onParamChange={project.setParam}
