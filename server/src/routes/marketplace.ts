@@ -17,7 +17,7 @@ export const marketplaceRouter = Router();
 
 // Publish a new item (authenticated)
 marketplaceRouter.post('/marketplace/publish', requireAuth, requireMongo, (async (req, res) => {
-  const { title, description, code, blenderCode } = req.body as PublishRequest;
+  const { title, description, code } = req.body as PublishRequest;
   if (!title || !code) {
     res.status(400).json({ error: 'title and code are required.' });
     return;
@@ -34,7 +34,6 @@ marketplaceRouter.post('/marketplace/publish', requireAuth, requireMongo, (async
     title: title.slice(0, 120),
     description: (description ?? '').slice(0, 1000),
     code,
-    blenderCode: blenderCode ?? '',
     creator,
   });
 
@@ -51,7 +50,7 @@ marketplaceRouter.get('/marketplace', requireMongo, (async (_req, res) => {
     .sort({ publishedAt: -1 })
     .skip(skip)
     .limit(limit)
-    .select('-code -blenderCode')
+    .select('-code')
     .lean();
 
   const total = await MarketplaceItem.countDocuments();
@@ -80,7 +79,6 @@ marketplaceRouter.get('/marketplace/:id', requireMongo, (async (req, res) => {
     title: item.title,
     description: item.description,
     code: item.code,
-    blenderCode: item.blenderCode,
     creator: { name: item.creator.name, picture: item.creator.picture },
     publishedAt: item.publishedAt.toISOString(),
   };

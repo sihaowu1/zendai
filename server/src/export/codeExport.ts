@@ -27,7 +27,6 @@ export function parseCodeExportFormat(value: unknown): CodeExportFormat {
 
 export interface CodeExportOptions {
   code: string;
-  blenderCode?: string;
   title?: string;
   format?: CodeExportFormat;
 }
@@ -39,7 +38,6 @@ export interface ProjectFile {
 
 export interface PackModelOptions {
   code: string;
-  blenderCode?: string;
   format: CodeExportFormat;
   /** Used for standalone index.html <title>. */
   title?: string;
@@ -62,10 +60,6 @@ export function packModelFiles(options: PackModelOptions): ProjectFile[] {
     files.push({ path: 'SceneCanvas.tsx', content: reactSceneCanvasTsx() });
   }
 
-  if (options.blenderCode?.trim()) {
-    files.push({ path: 'scene.blender.py', content: options.blenderCode });
-  }
-
   return files;
 }
 
@@ -84,7 +78,6 @@ export function buildProjectFiles(options: CodeExportOptions): ProjectFile[] {
   const format = options.format ?? 'standalone';
   const files = packModelFiles({
     code: options.code,
-    blenderCode: options.blenderCode,
     format,
     title,
   });

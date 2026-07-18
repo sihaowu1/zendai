@@ -4,7 +4,6 @@ export interface IMarketplaceItem extends Document {
   title: string;
   description: string;
   code: string;
-  blenderCode: string;
   creator: { sub: string; name: string; picture?: string };
   publishedAt: Date;
 }
@@ -13,7 +12,6 @@ const MarketplaceItemSchema = new Schema<IMarketplaceItem>({
   title: { type: String, required: true, maxlength: 120 },
   description: { type: String, required: true, maxlength: 1000 },
   code: { type: String, required: true },
-  blenderCode: { type: String, default: '' },
   creator: {
     sub: { type: String, required: true },
     name: { type: String, required: true },

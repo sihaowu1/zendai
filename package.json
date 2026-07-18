@@ -2,7 +2,7 @@
   "name": "motionforge",
   "version": "0.1.0",
   "private": true,
-  "description": "AI-powered, code-based 3D generation and video-editing system (Blender MCP + Three.js/WebGL + Remotion)",
+  "description": "AI-powered, code-based 3D generation and video-editing system (Three.js/WebGL + Remotion)",
   "workspaces": [
     "shared",
     "server",

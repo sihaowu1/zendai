@@ -23,8 +23,6 @@ export interface ExportScreenProps {
   models: SceneModel[];
   /** Active model scene module source. */
   code: string;
-  /** Active model Blender script. */
-  blenderCode: string;
   /** Display name used as export title. */
   modelName: string;
   /** Busy label from `useSceneProject` (blocks export actions while set). */
@@ -61,7 +59,7 @@ export interface ExportScreenProps {
   onGitHubUnlink: () => void;
   /** Apply models pulled from the linked GitHub repo. */
   onGitHubPull: (
-    models: Array<{ id: string; name: string; code: string; blenderCode?: string }>,
+    models: Array<{ id: string; name: string; code: string }>,
   ) => void;
 }
 
@@ -96,7 +94,6 @@ const FORMAT_OPTIONS: { value: CodeExportFormat; label: string }[] = [
 export function ExportScreen({
   models,
   code,
-  blenderCode,
   modelName,
   busy,
   onExportCode,
@@ -138,7 +135,6 @@ export function ExportScreen({
           id: m.id,
           name: m.name,
           code: m.code,
-          blenderCode: m.blenderCode,
         })),
     [models],
   );
@@ -503,7 +499,7 @@ export function ExportScreen({
             }
           >
             {code ? (
-              <PublishForm code={code} blenderCode={blenderCode ?? ''} />
+              <PublishForm code={code} />
             ) : (
               <p className="m-0 text-[13px] leading-normal text-text-faint">Generate a scene first to publish it.</p>
             )}

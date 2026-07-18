@@ -5,10 +5,9 @@ import { FIELD } from './ui/Input';
 
 export interface PublishFormProps {
   code: string;
-  blenderCode: string;
 }
 
-export function PublishForm({ code, blenderCode }: PublishFormProps) {
+export function PublishForm({ code }: PublishFormProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<'idle' | 'publishing' | 'success' | 'error'>('idle');
@@ -20,7 +19,7 @@ export function PublishForm({ code, blenderCode }: PublishFormProps) {
     setStatus('publishing');
     setErrorMsg('');
     try {
-      await publishToMarketplace({ title: title.trim(), description: description.trim(), code, blenderCode });
+      await publishToMarketplace({ title: title.trim(), description: description.trim(), code });
       setStatus('success');
       setTitle('');
       setDescription('');

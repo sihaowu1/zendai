@@ -15,7 +15,7 @@ function parseImage(body: Record<string, unknown>): ReferenceImage | undefined {
   return { mediaType: img.mediaType as ReferenceImage['mediaType'], base64: img.base64 };
 }
 
-// Prompt → new scene (Three.js module + Blender script + tunables).
+// Prompt → new scene (Three.js module + tunables).
 generateRouter.post('/generate', async (req, res) => {
   const prompt = String(req.body?.prompt ?? '').trim();
   if (!prompt) {
@@ -36,14 +36,13 @@ generateRouter.post('/generate', async (req, res) => {
 generateRouter.post('/modify', async (req, res) => {
   const prompt = String(req.body?.prompt ?? '').trim();
   const code = String(req.body?.code ?? '');
-  const blenderCode = String(req.body?.blenderCode ?? '');
   if (!prompt || !code) {
     res.status(400).json({ error: 'prompt and code are required' });
     return;
   }
   const image = parseImage(req.body);
   try {
-    res.json(await modifyScene(prompt, code, blenderCode, image));
+    res.json(await modifyScene(prompt, code, image));
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     logError('modify', message);
@@ -55,13 +54,12 @@ generateRouter.post('/modify', async (req, res) => {
 generateRouter.post('/animate', async (req, res) => {
   const prompt = String(req.body?.prompt ?? '').trim();
   const code = String(req.body?.code ?? '');
-  const blenderCode = String(req.body?.blenderCode ?? '');
   if (!prompt || !code) {
     res.status(400).json({ error: 'prompt and code are required' });
     return;
   }
   try {
-    res.json(await animateScene(prompt, code, blenderCode));
+    res.json(await animateScene(prompt, code));
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     logError('animate', message);

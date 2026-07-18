@@ -35,7 +35,6 @@ function auth0Sub(req: Request): string {
 
 function codeBody(req: Request): {
   code: string;
-  blenderCode?: string;
   title?: string;
   format: CodeExportFormat;
 } {
@@ -45,7 +44,6 @@ function codeBody(req: Request): {
   }
   return {
     code,
-    blenderCode: typeof req.body?.blenderCode === 'string' ? req.body.blenderCode : undefined,
     title: typeof req.body?.title === 'string' ? req.body.title : undefined,
     format: parseCodeExportFormat(req.body?.format),
   };
@@ -70,11 +68,7 @@ function modelsBody(req: Request): {
     if (!code.trim()) {
       throw new Error(`models[${index}].code is required`);
     }
-    const blender =
-      typeof (entry as { blenderCode?: unknown }).blenderCode === 'string'
-        ? (entry as { blenderCode: string }).blenderCode
-        : undefined;
-    return { id, name, code, blenderCode: blender };
+    return { id, name, code };
   });
   return {
     models,

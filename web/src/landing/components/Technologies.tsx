@@ -2,16 +2,6 @@ import React from "react";
 
 const TECHS = [
   {
-    name: "Blender",
-    glyph: (
-      <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth="1.4">
-        <path d="M12 3.5 L4 9 L4 19 a1 1 0 0 0 1 1 h14 a1 1 0 0 0 1 -1 V9 Z" strokeLinejoin="round" />
-        <circle cx="12" cy="13" r="3" />
-        <path d="M9.5 13 a2.5 2.5 0 0 1 4 -2" strokeLinecap="round" />
-      </svg>
-    ),
-  },
-  {
     name: "Three.js",
     glyph: (
       <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth="1.4">
@@ -67,7 +57,7 @@ export default function Technologies() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 border-t border-l hairline border-white/10">
+        <div className="grid grid-cols-2 sm:grid-cols-4 border-t border-l hairline border-white/10">
           {TECHS.map((t) => (
             <div
               key={t.name}

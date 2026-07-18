@@ -180,11 +180,6 @@ export function reactPackageJson(): string {
   )}\n`;
 }
 
-function blenderBullet(): string {
-  return `- \`scene.blender.py\` — the same scene as a Blender Python script (when included)
-`;
-}
-
 export function standaloneReadme(title: string): string {
   return `# ${title}
 
@@ -199,7 +194,7 @@ Exported from Zendai — a code-based 3D scene, fully editable.
   animates it as a pure function of time.
 - \`index.html\` + \`viewer.js\` — a standalone WebGL viewer for the module
   (Three.js is loaded from a CDN via an import map).
-${blenderBullet()}
+
 ## Run the web viewer
 
 Browsers block ES modules on file:// URLs, so serve the folder over HTTP:
@@ -212,14 +207,9 @@ npx serve .
 Expected output: the animated 3D scene rendering in your browser with orbit
 controls (drag to rotate, scroll to zoom).
 
-## Run the Blender script
-
-Open Blender → Scripting workspace → open \`scene.blender.py\` → Run Script.
-
 ## Tweak it
 
-Edit any value in \`PARAMS\` (in either file) and reload — the code is the
-project.
+Edit any value in \`PARAMS\` and reload — the code is the project.
 `;
 }
 
@@ -236,7 +226,7 @@ Exported from Zendai — a code-based 3D scene as a React component.
   \`buildScene\`, \`updateScene\`, optional \`CAMERA\`).
 - \`SceneCanvas.tsx\` — drop-in React host that mounts the module on a canvas.
 - \`package.json\` — peer dependency hints (\`react\`, \`react-dom\`, \`three\`).
-${blenderBullet()}
+
 ## Install
 
 \`\`\`bash
@@ -277,7 +267,7 @@ Exported from Zendai — raw scene module for a custom host.
 
 - \`scene.module.js\` — the parametric Three.js scene module. Hosts must inject
   \`THREE\`; the module must not \`import\` / \`require\` / \`fetch\`.
-${blenderBullet()}
+
 ## Contract
 
 \`\`\`js

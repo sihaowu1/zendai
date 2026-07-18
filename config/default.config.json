@@ -13,15 +13,6 @@
     "mgmtClientId": "",
     "mgmtClientSecret": ""
   },
-  "blender": {
-    "enabled": false,
-    "mcp": {
-      "command": "blender/.venv/bin/python3",
-      "args": ["blender/mcp/server.py"],
-      "bridgeHost": "127.0.0.1",
-      "bridgePort": 9876
-    }
-  },
   "remotion": {
     "compositionId": "GeneratedScene",
     "fps": 30,

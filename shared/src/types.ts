@@ -97,7 +97,6 @@ export interface RenderSettings {
 /** What the generation API returns to the editor. */
 export interface GenerationResult {
   code: string;
-  blenderCode: string;
   tunables: TunableParam[];
   source: 'model' | 'template';
 }
@@ -116,7 +115,6 @@ export interface MarketplaceItemSummary {
 /** Full item detail including source code. */
 export interface MarketplaceItemDetail extends MarketplaceItemSummary {
   code: string;
-  blenderCode: string;
 }
 
 /** Body sent to POST /api/marketplace/publish. */
@@ -124,5 +122,4 @@ export interface PublishRequest {
   title: string;
   description: string;
   code: string;
-  blenderCode: string;
 }

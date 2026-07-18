@@ -236,21 +236,7 @@ export async function pullModelsFromRepo(options: {
     const code = await fetchFileContent(octokit, owner, repo, modulePath, branch);
     if (!code.trim()) continue;
 
-    let blenderCode: string | undefined;
-    try {
-      blenderCode = await fetchFileContent(
-        octokit,
-        owner,
-        repo,
-        `models/${folder}/scene.blender.py`,
-        branch,
-      );
-      if (!blenderCode.trim()) blenderCode = undefined;
-    } catch {
-      blenderCode = undefined;
-    }
-
-    models.push({ id, name, code, blenderCode });
+    models.push({ id, name, code });
   }
 
   models.sort((a, b) => a.name.localeCompare(b.name));

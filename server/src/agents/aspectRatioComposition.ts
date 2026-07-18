@@ -17,7 +17,6 @@ import { extractFencedBlocks } from '../ai/extract';
 
 export interface AspectRatioSceneResult {
   code: string;
-  blenderCode: string;
   /** The model's prose outside the code fences — expected to open with a one-line aspect-ratio acknowledgment. */
   note?: string;
 }
@@ -47,7 +46,7 @@ export async function generateSceneForAspectRatio(
       content:
         `Create a 3D scene from this prompt:\n\n${prompt}\n\n` +
         `${aspectRatioLine(aspectRatio)}\n\n` +
-        'Return the ```javascript scene module and the ```python Blender script.',
+        'Return the ```javascript scene module.',
     },
   ];
 
@@ -70,18 +69,17 @@ export async function generateSceneForAspectRatio(
       .join('\n');
     const blocks = extractFencedBlocks(text);
     const js = blocks.find((block) => JS_LANGS.has(block.lang));
-    const py = blocks.find((block) => block.lang === 'python');
     errors = js ? validateSceneModule(js.code) : ['the response did not include a ```javascript block'];
     if (js && errors.length === 0) {
       const note = text.replace(/```[\s\S]*?```/g, '').trim();
-      return { code: js.code, blenderCode: py?.code ?? '', note: note || undefined };
+      return { code: js.code, note: note || undefined };
     }
     messages.push({ role: 'assistant', content: response.content as Anthropic.MessageParam['content'] });
     messages.push({
       role: 'user',
       content:
         `That response was rejected by the validator: ${errors.join('; ')}. ` +
-        'Return corrected ```javascript and ```python blocks that follow the contract exactly.',
+        'Return a corrected ```javascript block that follows the contract exactly.',
     });
   }
   throw new Error(`The model did not produce a valid scene module: ${errors.join('; ')}`);

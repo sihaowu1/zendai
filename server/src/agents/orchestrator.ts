@@ -23,7 +23,6 @@ export async function generateScene(prompt: string, image?: ReferenceImage): Pro
 export async function modifyScene(
   prompt: string,
   code: string,
-  blenderCode: string,
   image?: ReferenceImage,
 ): Promise<GenerationResult> {
   const client = getAnthropicClient();
@@ -33,15 +32,11 @@ export async function modifyScene(
         'You can still edit the code directly in the editor.',
     );
   }
-  const result = await sceneAgent.modifyScene(client, prompt, code, blenderCode, image);
+  const result = await sceneAgent.modifyScene(client, prompt, code, image);
   return { ...result, tunables: parseTunables(result.code), source: 'model' };
 }
 
-export async function animateScene(
-  prompt: string,
-  code: string,
-  blenderCode: string,
-): Promise<GenerationResult> {
+export async function animateScene(prompt: string, code: string): Promise<GenerationResult> {
   const client = getAnthropicClient();
   if (!client) {
     throw new Error(
@@ -49,6 +44,6 @@ export async function animateScene(
         'You can still edit the code directly in the editor.',
     );
   }
-  const result = await animationAgent.animateScene(client, prompt, code, blenderCode);
+  const result = await animationAgent.animateScene(client, prompt, code);
   return { ...result, tunables: parseTunables(result.code), source: 'model' };
 }

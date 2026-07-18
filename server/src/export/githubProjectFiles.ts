@@ -6,7 +6,6 @@ export interface GitHubModelInput {
   id: string;
   name: string;
   code: string;
-  blenderCode?: string;
 }
 
 /**
@@ -14,7 +13,6 @@ export interface GitHubModelInput {
  *
  *   models/<slug>/scene.module.js
  *   models/<slug>/…format files…
- *   models/<slug>/scene.blender.py   (optional)
  *   animations/.gitkeep
  *   package.json                     (react only, repo root)
  *   README.md
@@ -39,7 +37,6 @@ export function buildGitHubProjectFiles(options: {
     const slug = modelFolderSlug(model.name, model.id);
     const packed = packModelFiles({
       code: model.code,
-      blenderCode: model.blenderCode,
       format,
       title: model.name,
     });
@@ -106,7 +103,7 @@ ${formatExtra}
 
 ## Layout
 
-- \`models/\` — one folder per model (\`scene.module.js\`, format wrappers, optional \`scene.blender.py\`)
+- \`models/\` — one folder per model (\`scene.module.js\` plus format wrappers)
 - \`animations/\` — reserved for animation scripts (empty for now)
 
 ## Models
