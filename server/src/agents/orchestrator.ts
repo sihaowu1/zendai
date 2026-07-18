@@ -27,7 +27,7 @@ export async function modifyScene(
   const client = getAnthropicClient();
   if (!client) {
     throw new Error(
-      'AI modification requires ANTHROPIC_API_KEY (the offline template generator cannot apply edits). ' +
+      'AI modification requires OPENROUTER_API_KEY (the offline template generator cannot apply edits). ' +
         'You can still edit the code directly in the editor.',
     );
   }

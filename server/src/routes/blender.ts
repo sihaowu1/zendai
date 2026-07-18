@@ -37,7 +37,7 @@ blenderRouter.post('/blender/agent', async (req, res) => {
   }
   const client = getAnthropicClient();
   if (!client) {
-    res.status(400).json({ error: 'the Blender agent requires ANTHROPIC_API_KEY' });
+    res.status(400).json({ error: 'the Blender agent requires OPENROUTER_API_KEY' });
     return;
   }
   try {

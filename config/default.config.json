@@ -3,14 +3,14 @@
     "port": 5174
   },
   "ai": {
-    "model": "claude-opus-4-8",
+    "model": "anthropic/claude-opus-4-8",
     "maxTokens": 16000,
     "maxAgentIterations": 8
   },
   "blender": {
     "enabled": false,
     "mcp": {
-      "command": "python3",
+      "command": "blender/.venv/bin/python3",
       "args": ["blender/mcp/server.py"],
       "bridgeHost": "127.0.0.1",
       "bridgePort": 9876

@@ -4,7 +4,7 @@ import {
 } from '@motionforge/shared';
 
 /**
- * Deterministic offline generator used when no ANTHROPIC_API_KEY is set.
+ * Deterministic offline generator used when no OPENROUTER_API_KEY is set.
  * It maps prompt keywords onto the shared parametric scene templates so the
  * whole pipeline (editor → controls → Remotion → Blender) stays runnable
  * without network access.

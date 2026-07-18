@@ -1,7 +1,9 @@
 node_modules/
+.venv/
 dist/
 renders/
 exports/
 .env
 *.log
 .DS_Store
+.tendo/

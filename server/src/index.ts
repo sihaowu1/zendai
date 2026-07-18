@@ -8,9 +8,9 @@ app.listen(config.server.port, () => {
   log('server', `MotionForge server listening on http://localhost:${config.server.port}`);
   log(
     'server',
-    process.env.ANTHROPIC_API_KEY
+    process.env.OPENROUTER_API_KEY
       ? `AI agents: Anthropic API (${config.ai.model})`
-      : 'AI agents: offline template fallback (set ANTHROPIC_API_KEY in .env for AI generation)',
+      : 'AI agents: offline template fallback (set OPENROUTER_API_KEY in .env for AI generation)',
   );
   log(
     'server',

@@ -99,9 +99,9 @@ cp .env.example .env
 Edit `.env`:
 
 ```bash
-ANTHROPIC_API_KEY=sk-ant-...   # omit to run fully offline (template fallback)
+OPENROUTER_API_KEY=sk-or-v1-...   # omit to run fully offline (template fallback)
 # PORT=5174
-# ANTHROPIC_MODEL=claude-opus-4-8
+# ANTHROPIC_MODEL=anthropic/claude-opus-4-8
 # BLENDER_MCP_ENABLED=true     # only if you're connecting a real Blender instance
 # REMOTION_GL=angle
 ```

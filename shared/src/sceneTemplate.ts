@@ -2,7 +2,7 @@
  * Deterministic scene-code builders. They produce code that follows the same
  * contract the AI agents are instructed to follow (see skills/scene-generation).
  * Used for: the editor's initial scene, the server's offline fallback when no
- * ANTHROPIC_API_KEY is set, and the checked-in Remotion placeholder module.
+ * OPENROUTER_API_KEY is set, and the checked-in Remotion placeholder module.
  */
 
 export interface SceneTemplateOptions {
