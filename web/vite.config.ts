@@ -14,8 +14,19 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react(), tailwindcss()],
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, '../src'),
+      },
+    },
+    optimizeDeps: {
+      include: ['lucide-react', 'react', 'react-dom', 'react-router-dom'],
+    },
     server: {
       port: 5173,
+      fs: {
+        allow: [repoRoot],
+      },
       proxy: {
         '/api': serverUrl,
         '/renders': serverUrl,

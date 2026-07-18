@@ -7,10 +7,15 @@ import { Viewport } from '../viewport/Viewport';
 
 interface Props {
   job: Mp4JobState | null;
-  code: string;
+  /** The scene code for whatever's under the playhead. Undefined when the timeline has nothing there — renders a black screen. */
+  code: string | undefined;
   tunables: TunableParam[];
   onParamChange: ParamChange;
   modelName: string;
+  /** Set false to hide the click-to-edit tunables floater (e.g. on the Export screen). Defaults to true. */
+  enableClickFloater?: boolean;
+  /** Timeline playhead position (seconds), passed through to the live viewport. Omit for a free-running preview. */
+  time?: number;
 }
 
 /**
@@ -20,7 +25,15 @@ interface Props {
  * sliders/switches). Shared between the Video Generation and Export screens
  * so both show the exact same "resulting video" surface.
  */
-export function VideoPreview({ job, code, tunables, onParamChange, modelName }: Props) {
+export function VideoPreview({
+  job,
+  code,
+  tunables,
+  onParamChange,
+  modelName,
+  enableClickFloater = true,
+  time,
+}: Props) {
   const [clickAnchor, setClickAnchor] = useState<{ x: number; y: number } | null>(null);
 
   // A different model becoming active invalidates whatever was anchored.
@@ -43,9 +56,13 @@ export function VideoPreview({ job, code, tunables, onParamChange, modelName }: 
   const badgeClass =
     'absolute left-2 bottom-2 max-w-[calc(100%-16px)] rounded border border-border bg-[rgba(18,21,28,0.85)] px-2.5 py-1 text-xs text-text-dim';
 
+  if (!code) {
+    return <div className="h-full w-full bg-black" aria-label="Empty timeline" />;
+  }
+
   return (
     <div className="relative h-full w-full">
-      <Viewport code={code} onModelClick={setClickAnchor} />
+      <Viewport code={code} onModelClick={enableClickFloater ? setClickAnchor : undefined} time={time} />
       {job?.status === 'running' && (
         <div className={badgeClass}>Rendering… {Math.round((job.progress ?? 0) * 100)}%</div>
       )}
@@ -54,8 +71,10 @@ export function VideoPreview({ job, code, tunables, onParamChange, modelName }: 
           Render failed{job.error ? `: ${job.error}` : ''}
         </div>
       )}
-      {!job && <div className={badgeClass}>Live preview — click the model to tweak it</div>}
-      {clickAnchor && (
+      {!job && enableClickFloater && (
+        <div className={badgeClass}>Live preview — click the model to tweak it</div>
+      )}
+      {enableClickFloater && clickAnchor && (
         <ControlsFloater
           anchor={clickAnchor}
           title={modelName}

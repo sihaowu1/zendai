@@ -33,12 +33,16 @@ export function App() {
             element={
               <VideoGenerationScreen
                 models={project.models}
-                activeModelId={project.activeModelId}
-                code={project.code}
                 tunables={project.tunables}
                 onParamChange={project.setParam}
                 mp4Job={project.mp4Job}
-                clips={project.clips}
+                timelineClips={project.timelineClips}
+                timelineTotal={project.timelineTotal}
+                playback={project.playback}
+                previewCode={project.previewCode}
+                previewTime={project.previewTime}
+                previewModelName={project.previewModelName}
+                onDropModel={project.addClipAtSecond}
                 chat={
                   <ChatPanel
                     busy={project.busy}
@@ -54,12 +58,15 @@ export function App() {
             path="/export"
             element={
               <ExportScreen
-                models={project.models}
-                activeModelId={project.activeModelId}
-                code={project.code}
                 tunables={project.tunables}
                 onParamChange={project.setParam}
                 mp4Job={project.mp4Job}
+                timelineClips={project.timelineClips}
+                timelineTotal={project.timelineTotal}
+                playback={project.playback}
+                previewCode={project.previewCode}
+                previewTime={project.previewTime}
+                previewModelName={project.previewModelName}
               />
             }
           />
