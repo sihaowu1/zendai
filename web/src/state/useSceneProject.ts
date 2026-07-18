@@ -533,11 +533,12 @@ export function useSceneProject() {
   }, []);
 
   const exportCode = useCallback(
-    () =>
+    (format: api.CodeExportFormat = 'standalone') =>
       run('Exporting code…', async () => {
-        const blob = await api.exportCodeZip(code, blenderCode);
-        downloadBlob(blob, 'zendai-scene.zip');
-        setStatus({ kind: 'info', text: 'Project exported as zendai-scene.zip.' });
+        const blob = await api.exportCodeZip(code, blenderCode, format);
+        const fileName = `zendai-scene-${format}.zip`;
+        downloadBlob(blob, fileName);
+        setStatus({ kind: 'info', text: `Project exported as ${fileName}.` });
       }),
     [run, code, blenderCode],
   );

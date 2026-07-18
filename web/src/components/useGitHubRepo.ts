@@ -59,6 +59,7 @@ export function useGitHubRepo(options: GitHubRepoOptions = {}) {
       models: GitHubModelPayload[];
       title?: string;
       message?: string;
+      format?: api.CodeExportFormat;
     }) => {
       setBusy(true);
       setError(null);
@@ -69,6 +70,7 @@ export function useGitHubRepo(options: GitHubRepoOptions = {}) {
           models: opts.models,
           title: opts.title,
           message: opts.message,
+          format: opts.format,
         });
         const repo: GitHubLinkedRepo = {
           owner: result.owner,
@@ -111,7 +113,12 @@ export function useGitHubRepo(options: GitHubRepoOptions = {}) {
   );
 
   const commit = useCallback(
-    async (opts: { models: GitHubModelPayload[]; title?: string; message?: string }) => {
+    async (opts: {
+      models: GitHubModelPayload[];
+      title?: string;
+      message?: string;
+      format?: api.CodeExportFormat;
+    }) => {
       if (!linked) throw new Error('No repository linked');
       setBusy(true);
       setError(null);
@@ -123,6 +130,7 @@ export function useGitHubRepo(options: GitHubRepoOptions = {}) {
           models: opts.models,
           title: opts.title,
           message: opts.message,
+          format: opts.format,
         });
         setLastCommitUrl(result.commitUrl);
         return result;

@@ -125,14 +125,21 @@ export const publishToMarketplace = (body: PublishRequest) =>
 
 // ─── Export ─────────────────────────────────────────────────────────────────
 
-export async function exportCodeZip(code: string, blenderCode: string): Promise<Blob> {
+export const CODE_EXPORT_FORMATS = ['standalone', 'react', 'module'] as const;
+export type CodeExportFormat = (typeof CODE_EXPORT_FORMATS)[number];
+
+export async function exportCodeZip(
+  code: string,
+  blenderCode: string,
+  format: CodeExportFormat = 'standalone',
+): Promise<Blob> {
   const response = await fetch('/api/export/code', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       ...(await authHeaders()),
     },
-    body: JSON.stringify({ code, blenderCode }),
+    body: JSON.stringify({ code, blenderCode, format }),
   });
   if (!response.ok) throw await parseError(response);
   return response.blob();
@@ -163,6 +170,7 @@ export interface GitHubProjectPayload {
   models: GitHubModelPayload[];
   title?: string;
   message?: string;
+  format?: CodeExportFormat;
 }
 
 export interface GitHubPullResult {

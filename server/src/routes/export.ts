@@ -3,7 +3,11 @@ import type { Request } from 'express';
 import type { RenderSettings } from '@motionforge/shared';
 import { requireAuth } from '../auth/middleware';
 import { getGitHubTokenForUser } from '../auth/githubToken';
-import { streamProjectZip } from '../export/codeExport';
+import {
+  parseCodeExportFormat,
+  streamProjectZip,
+  type CodeExportFormat,
+} from '../export/codeExport';
 import {
   commitFiles,
   createRepoAndCommit,
@@ -29,7 +33,12 @@ function auth0Sub(req: Request): string {
   return sub;
 }
 
-function codeBody(req: Request): { code: string; blenderCode?: string; title?: string } {
+function codeBody(req: Request): {
+  code: string;
+  blenderCode?: string;
+  title?: string;
+  format: CodeExportFormat;
+} {
   const code = String(req.body?.code ?? '');
   if (!code.trim()) {
     throw new Error('code is required');
@@ -38,10 +47,15 @@ function codeBody(req: Request): { code: string; blenderCode?: string; title?: s
     code,
     blenderCode: typeof req.body?.blenderCode === 'string' ? req.body.blenderCode : undefined,
     title: typeof req.body?.title === 'string' ? req.body.title : undefined,
+    format: parseCodeExportFormat(req.body?.format),
   };
 }
 
-function modelsBody(req: Request): { models: GitHubModelInput[]; title?: string } {
+function modelsBody(req: Request): {
+  models: GitHubModelInput[];
+  title?: string;
+  format: CodeExportFormat;
+} {
   const raw = req.body?.models;
   if (!Array.isArray(raw) || raw.length === 0) {
     throw new Error('models array is required');
@@ -65,6 +79,7 @@ function modelsBody(req: Request): { models: GitHubModelInput[]; title?: string 
   return {
     models,
     title: typeof req.body?.title === 'string' ? req.body.title : undefined,
+    format: parseCodeExportFormat(req.body?.format),
   };
 }
 
@@ -144,7 +159,11 @@ exportRouter.post('/export/github/create', requireAuth, (req, res) => {
     const name = String(req.body?.name ?? '').trim();
     if (!name) throw new Error('name is required');
     const options = modelsBody(req);
-    const files = buildGitHubProjectFiles(options);
+    const files = buildGitHubProjectFiles({
+      models: options.models,
+      title: options.title,
+      format: options.format,
+    });
     return createRepoAndCommit({
       token,
       name,
@@ -177,7 +196,11 @@ exportRouter.post('/export/github/commit', requireAuth, (req, res) => {
     const repo = String(req.body?.repo ?? '').trim();
     if (!owner || !repo) throw new Error('owner and repo are required');
     const options = modelsBody(req);
-    const files = buildGitHubProjectFiles(options);
+    const files = buildGitHubProjectFiles({
+      models: options.models,
+      title: options.title,
+      format: options.format,
+    });
     return commitFiles({
       token,
       owner,

@@ -15,6 +15,8 @@ import { VideoPreview } from '../VideoPreview';
 import { Button, ButtonLink, IconButton } from '../ui/Button';
 import { PANEL, PANEL_HEADER } from '../ui/Panel';
 import { FIELD, FIELD_LABEL } from '../ui/Input';
+import type { CodeExportFormat } from '../../api/client';
+import { CODE_EXPORT_FORMATS } from '../../api/client';
 
 export interface ExportScreenProps {
   /** All models to push under `models/` on GitHub commit/create. */
@@ -28,7 +30,7 @@ export interface ExportScreenProps {
   /** Busy label from `useSceneProject` (blocks export actions while set). */
   busy: string | null;
   /** Download ZIP via `useSceneProject.exportCode`. */
-  onExportCode: () => void;
+  onExportCode: (format: CodeExportFormat) => void;
   /** Start Remotion MP4 via `useSceneProject.exportMp4`. */
   onExportMp4: (settings: RenderSettings) => void;
   /** The active model's tunables (from `useSceneProject.tunables`), edited via the click floater. */
@@ -73,6 +75,12 @@ const RESOLUTIONS = [
   { label: '1080 × 1920 (vertical)', width: 1080, height: 1920 },
 ];
 
+const FORMAT_OPTIONS: { value: CodeExportFormat; label: string }[] = [
+  { value: 'standalone', label: 'Standalone HTML' },
+  { value: 'react', label: 'React component' },
+  { value: 'module', label: 'ES module only' },
+];
+
 /**
  * Screen 3 — Export.
  *
@@ -111,6 +119,7 @@ export function ExportScreen({
     onGitHubUnlink();
   }, [onGitHubUnlink]);
   const github = useGitHubRepo({ onUnlink });
+  const [codeFormat, setCodeFormat] = useState<CodeExportFormat>('standalone');
   const [fps, setFps] = useState(30);
   const [duration, setDuration] = useState(6);
   const [resolution, setResolution] = useState(0);
@@ -164,7 +173,35 @@ export function ExportScreen({
           <p className="m-0 text-[13px] leading-normal text-text-faint">
             Download the generated project as code, or render it to an MP4.
           </p>
-          <Button variant="secondary" type="button" disabled={exportBusy} onClick={onExportCode}>
+          <label className={FIELD_LABEL}>
+            Code format
+            <select
+              className={FIELD}
+              value={codeFormat}
+              disabled={exportBusy}
+              onChange={(event) => {
+                const next = event.target.value;
+                if ((CODE_EXPORT_FORMATS as readonly string[]).includes(next)) {
+                  setCodeFormat(next as CodeExportFormat);
+                }
+              }}
+            >
+              {FORMAT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <p className="m-0 text-[12px] leading-normal text-text-faint">
+            Applies to ZIP download and GitHub pushes.
+          </p>
+          <Button
+            variant="secondary"
+            type="button"
+            disabled={exportBusy}
+            onClick={() => onExportCode(codeFormat)}
+          >
             Export code (.zip)
           </Button>
 
@@ -263,8 +300,8 @@ export function ExportScreen({
           </h2>
           <p className="m-0 text-[13px] leading-normal text-text-faint">
             Save all models under <code className="text-text">models/</code> (and an empty{' '}
-            <code className="text-text">animations/</code> folder) to a GitHub repo. Sign in with
-            GitHub is required.
+            <code className="text-text">animations/</code> folder) using the selected code format.
+            Sign in with GitHub is required.
           </p>
           <RequireAuth
             fallback={
@@ -311,6 +348,7 @@ export function ExportScreen({
                       models: githubModels,
                       title: modelName,
                       message: commitMessage || undefined,
+                      format: codeFormat,
                     })
                   }
                 >
@@ -399,6 +437,7 @@ export function ExportScreen({
                           models: githubModels,
                           title: modelName,
                           message: commitMessage || undefined,
+                          format: codeFormat,
                         })
                       }
                     >
