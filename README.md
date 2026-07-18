@@ -1,12 +1,8 @@
 <div align="center">
 
-<img src="assets/logo.png" width="120" height="120">
-
-# Zendai
+<img src="assets/logo.png" width="240" height="240">
 
 AI-powered 3D generation from a single prompt.
-
-🏆 Hack the 6ix 2026
 
 [![GitHub stars](https://img.shields.io/github/stars/sihaowu1/zendai?style=social)](https://github.com/sihaowu1/zendai)
 [![GitHub forks](https://img.shields.io/github/forks/sihaowu1/zendai?style=social)](https://github.com/sihaowu1/zendai/network/members)
