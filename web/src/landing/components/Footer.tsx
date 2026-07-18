@@ -1,5 +1,5 @@
 import React from "react";
-import { Logo } from "../../../web/src/components/app/Logo";
+import { Logo } from "../../components/app/Logo";
 
 export default function Footer() {
   return (

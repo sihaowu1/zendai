@@ -25,7 +25,7 @@ const STEPS = [
 ];
 
 export default function Workflow() {
-  const sectionRef = useRef(null);
+  const sectionRef = useRef<HTMLElement>(null);
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {

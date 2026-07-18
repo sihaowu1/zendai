@@ -4,11 +4,11 @@ import { Play, ArrowUpRight, Box, Layers, Clapperboard, Settings2, Download, Spa
 
 const PROMPT_TEXT = "A windswept dune field at dusk, low poly terrain, sharp shadows";
 
-function useTyped(text, speed = 38, startDelay = 600) {
+function useTyped(text: string, speed = 38, startDelay = 600) {
   const [out, setOut] = useState("");
   useEffect(() => {
     let i = 0;
-    let timer;
+    let timer: ReturnType<typeof setInterval>;
     const start = setTimeout(() => {
       timer = setInterval(() => {
         i++;
@@ -95,7 +95,7 @@ export default function Hero() {
   );
 }
 
-function ProductMockup({ typed }) {
+function ProductMockup({ typed }: { typed: string }) {
   return (
     <div className="relative">
       {/* Window chrome */}
