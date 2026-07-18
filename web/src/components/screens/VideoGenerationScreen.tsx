@@ -138,15 +138,15 @@ export function VideoGenerationScreen({
 
   const chatWidth = useResizable({
     direction: 'horizontal',
-    initial: 280,
-    min: 200,
+    initial: 320,
+    min: 240,
     max: 640,
     storageKey: 'motionforge:video-screen:chat-width',
   });
   const materialsWidth = useResizable({
     direction: 'horizontal',
-    initial: 240,
-    min: 160,
+    initial: 260,
+    min: 180,
     max: 640,
     storageKey: 'motionforge:video-screen:materials-width',
   });
@@ -170,13 +170,22 @@ export function VideoGenerationScreen({
           gridTemplateColumns: `${chatWidth.size}px 1px ${materialsWidth.size}px 1px 1fr`,
         }}
       >
-        <Pane title="Chat">
-          {chat ?? <Placeholder label="Chat" hint="Prompt the AI to edit or extend the video." />}
-        </Pane>
+        <div className="flex min-h-0 min-w-0 flex-col bg-bg-panel">
+          <section className="flex min-h-0 flex-1 flex-col p-3" aria-label="Chat">
+            {chat ?? (
+              <Placeholder label="Chat" hint="Prompt the AI to edit or extend the video." />
+            )}
+          </section>
+        </div>
         <ResizeHandle direction="horizontal" onPointerDown={chatWidth.startDragging} label="Resize chat panel" />
-        <Pane title="Materials">
-          <MaterialsList models={models} activeModelId={activeModelId} onSelectModel={onSelectModel} />
-        </Pane>
+        <div className="flex min-h-0 min-w-0 flex-col bg-bg-panel">
+          <section className="flex min-h-0 flex-1 flex-col gap-2 p-3" aria-label="Materials">
+            <h2 className={`flex-shrink-0 ${PANEL_HEADER}`}>Materials</h2>
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <MaterialsList models={models} activeModelId={activeModelId} onSelectModel={onSelectModel} />
+            </div>
+          </section>
+        </div>
         <ResizeHandle
           direction="horizontal"
           onPointerDown={materialsWidth.startDragging}
@@ -284,10 +293,9 @@ function MaterialsList({
 }) {
   if (models.length === 0) {
     return (
-      <Placeholder
-        label="No materials yet"
-        hint="Generate a model on the Model Generation screen to see it here."
-      />
+      <p className="m-0 text-[13px] leading-normal text-text-faint">
+        Generate a model on the Model Generation screen to see it here.
+      </p>
     );
   }
   return (
@@ -297,14 +305,14 @@ function MaterialsList({
         return (
           <li
             key={m.id}
-            className={`rounded-lg border ${
-              isActive
-                ? 'border-accent bg-accent/10'
-                : 'border-border bg-bg-raised hover:border-border hover:bg-bg-raised/80'
+            className={`overflow-hidden rounded-lg border border-border ${
+              isActive ? 'bg-bg-hover' : 'bg-bg-raised'
             }`}
           >
             <div
-              className="flex cursor-grab items-center gap-2 px-3 py-2"
+              className={`flex cursor-grab items-center gap-2 px-2.5 py-2 ${
+                isActive ? 'text-accent' : 'text-text'
+              }`}
               draggable
               onClick={() => onSelectModel(m.id)}
               onDragStart={(event) => {
@@ -312,10 +320,13 @@ function MaterialsList({
                 event.dataTransfer.effectAllowed = 'copy';
               }}
             >
-              <span className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-[14px] text-text" title={m.name}>
+              <span
+                className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-[13px] font-medium"
+                title={m.name}
+              >
                 {m.name}
                 {m.children?.length ? (
-                  <span className="ml-1 font-normal text-text-dim">· merge</span>
+                  <span className="ml-1.5 font-normal text-text-dim">· merge</span>
                 ) : null}
               </span>
             </div>

@@ -70,7 +70,7 @@ export function App() {
                     busy={project.busy}
                     status={project.status}
                     onGenerate={project.animate}
-                    showTitle={false}
+                    title="Video chat"
                     showModify={false}
                     allowImageAttachment={false}
                     generateLabel="Animate"

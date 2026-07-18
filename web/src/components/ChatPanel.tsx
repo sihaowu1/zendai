@@ -33,10 +33,11 @@ interface Props {
   modifyLabel?: string;
   placeholder?: string;
   emptyHint?: string;
+  /** Section label above the message list (default "Model chat"). */
+  title?: string;
   /**
-   * Set false where the surrounding container already labels this pane — the
-   * Video screen wraps it in a titled `Pane`, and two stacked headers read as
-   * a bug.
+   * Set false where the surrounding container already labels this pane —
+   * otherwise two stacked headers read as a bug.
    */
   showTitle?: boolean;
   /** When false, hide camera/upload/paste image attachment (Video screen). */
@@ -88,6 +89,7 @@ export function ChatPanel({
   placeholder = 'Ask to modify the model, or generate a new one…',
   emptyHint =
     "Generate builds a new model. Modify edits the one you're looking at. You can also attach or capture a reference image.",
+  title = 'Model chat',
   showTitle = true,
   allowImageAttachment = true,
   showModify = true,
@@ -192,7 +194,7 @@ export function ChatPanel({
     <div className="flex h-full min-h-0 flex-col gap-2.5">
       {showTitle && (
         <h2 className={`flex-none ${PANEL_HEADER}`}>
-          Model chat
+          {title}
         </h2>
       )}
       <div ref={listRef} className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto pr-1">
