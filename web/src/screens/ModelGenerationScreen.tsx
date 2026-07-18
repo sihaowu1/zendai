@@ -1,8 +1,5 @@
-import { useState } from 'react';
-import { BlenderPanel } from '../blender/BlenderPanel';
-import { ControlsPanel } from '../controls/ControlsPanel';
-import { EditorTabs, type EditorTab } from '../editor/EditorTabs';
-import { ExportPanel } from '../export/ExportPanel';
+import { ChatPanel } from '../chat/ChatPanel';
+import { ModelsLayersList } from '../models/ModelsLayersList';
 import type { useSceneProject } from '../state/useSceneProject';
 import { Viewport } from '../viewport/Viewport';
 
@@ -13,41 +10,44 @@ interface Props {
 /**
  * Screen 1 — Model Generation.
  *
- * The original single-screen workspace: sidebar (controls / export / blender),
- * live Three.js viewport, and the scene/Blender code editor. State comes from
- * `useSceneProject`, which is lifted to `App` so both screens share it.
+ *   +------------------+---------------------------+
+ *   | Chat             |                           |
+ *   | (top-left)       |                           |
+ *   +------------------+   3D Viewport             |
+ *   | Models & Layers  |   (full right column)     |
+ *   | (bottom-left)    |                           |
+ *   +------------------+---------------------------+
+ *
+ * The left column is chat (scrollback, drives generate/modify) over the
+ * Models & Layers list; both read/write `useSceneProject`, which is lifted
+ * to `App` so this stays in sync with the Video screen's Materials pane.
+ * Clicking a model row only activates it (for the viewport) — the per-model
+ * controls floater is separate work (SPEC.md Issue 3).
  */
 export function ModelGenerationScreen({ project }: Props) {
-  const [tab, setTab] = useState<EditorTab>('scene');
-
   return (
-    <main className="workspace">
-      <aside className="sidebar">
-        <ControlsPanel tunables={project.tunables} onChange={project.setParam} />
-        <ExportPanel
-          busy={project.busy}
-          mp4Job={project.mp4Job}
-          onExportCode={project.exportCode}
-          onExportMp4={project.exportMp4}
-        />
-        <BlenderPanel
-          status={project.blenderStatus}
-          busy={project.busy}
-          onSync={project.syncBlender}
-          onAgent={project.runBlenderAgent}
-        />
-      </aside>
+    <main className="model-screen">
+      <div className="model-screen__left">
+        <section className="model-screen__chat" aria-label="Chat">
+          <ChatPanel
+            busy={project.busy}
+            status={project.status}
+            onGenerate={project.generate}
+            onModify={project.modify}
+          />
+        </section>
+        <section className="model-screen__models" aria-label="Models & Layers">
+          <h2 className="model-screen__models-title">Models &amp; Layers</h2>
+          <div className="model-screen__models-body">
+            <ModelsLayersList
+              models={project.models}
+              activeModelId={project.activeModelId}
+              onSelectModel={project.setActiveModel}
+            />
+          </div>
+        </section>
+      </div>
       <Viewport code={project.code} />
-      <section className="editor-pane">
-        <EditorTabs
-          tab={tab}
-          onTabChange={setTab}
-          sceneCode={project.code}
-          blenderCode={project.blenderCode}
-          onSceneChange={project.setCode}
-          onBlenderChange={project.setBlenderCode}
-        />
-      </section>
     </main>
   );
 }

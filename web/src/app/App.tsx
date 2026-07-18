@@ -1,7 +1,6 @@
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
 import type { CSSProperties } from 'react';
 import { useSceneProject } from '../state/useSceneProject';
-import { PromptBar } from './PromptBar';
 import { StatusBar } from './StatusBar';
 import { ModelGenerationScreen } from '../screens/ModelGenerationScreen';
 import { VideoGenerationScreen } from '../screens/VideoGenerationScreen';
@@ -13,13 +12,16 @@ import { ChatPanel } from '../chat/ChatPanel';
  * `useSceneProject` lives here so both screens share one state instance —
  * per SPEC.md Issue 4, Materials/Video panes must read the same data source
  * as the Model screen's list, or the two screens will drift out of sync.
+ *
+ * Each screen owns its own chat (`ChatPanel`, with scrollback) rather than a
+ * single global prompt bar, so there's no top-level `PromptBar` mounted here
+ * anymore — see `PromptBar.tsx`'s doc comment.
  */
 export function App() {
   const project = useSceneProject();
 
   return (
     <div className="app">
-      <PromptBar busy={project.busy} onGenerate={project.generate} onModify={project.modify} />
       <TopNav />
       <div style={styles.outlet}>
         <Routes>

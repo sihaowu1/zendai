@@ -9,6 +9,11 @@ interface Props {
 /**
  * The single prompt input driving the AI agents: "Generate" creates a new
  * scene from the prompt; "Modify" applies the prompt to the current scene.
+ *
+ * Not currently mounted anywhere — both screens now have their own
+ * scrollback-backed chat (`chat/ChatPanel.tsx`) instead of one global,
+ * fire-and-forget prompt bar. Kept around in case a compact/no-history input
+ * is wanted elsewhere later; safe to delete if not.
  */
 export function PromptBar({ busy, onGenerate, onModify }: Props) {
   const [prompt, setPrompt] = useState('');

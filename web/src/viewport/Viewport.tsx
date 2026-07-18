@@ -3,22 +3,29 @@ import { SceneRuntime } from './SceneRuntime';
 
 interface Props {
   code: string;
+  /** Fired when the user clicks any rendered object (not empty space). */
+  onModelClick?: (point: { x: number; y: number }) => void;
 }
 
 /**
  * The WebGL preview panel. Debounces code changes (typing, slider drags, AI
  * output) and hot-reloads them into the SceneRuntime.
  */
-export function Viewport({ code }: Props) {
+export function Viewport({ code, onModelClick }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const runtimeRef = useRef<SceneRuntime | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Kept in a ref so the mount-only effect below always calls the latest
+  // handler without needing to recreate the runtime when it changes.
+  const onModelClickRef = useRef(onModelClick);
+  onModelClickRef.current = onModelClick;
 
   useEffect(() => {
     if (!canvasRef.current || !containerRef.current) return;
     const runtime = new SceneRuntime(canvasRef.current);
     runtime.onError = (err) => setError(err.message);
+    runtime.onObjectClick = (point) => onModelClickRef.current?.(point);
     runtimeRef.current = runtime;
     const observer = new ResizeObserver(([entry]) => {
       runtime.resize(entry.contentRect.width, entry.contentRect.height);
