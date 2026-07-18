@@ -4,6 +4,7 @@ import {
   DEFAULT_ASPECT_RATIO,
   DEFAULT_SCENE_CODE,
   deleteLayer as deleteLayerInCode,
+  extractLayers,
   parseTunables,
   patchParam,
   renameLayer as renameLayerInCode,
@@ -294,7 +295,7 @@ export function useSceneProject() {
           ...current,
           {
             id,
-            name: nameFromPrompt(prompt, current.length + 1),
+            name: result.title || nameFromPrompt(prompt, current.length + 1),
             code: result.code,
             createdAt: Date.now(),
           },
@@ -338,22 +339,60 @@ export function useSceneProject() {
   }, []);
 
   const modify = useCallback(
-    (prompt: string, image?: ReferenceImage) =>
+    (prompt: string, image?: ReferenceImage, targetModelId?: string) =>
       run('Modifying model…', async () => {
-        const result = await api.modify(prompt, code, image);
+        const modelId = targetModelId ?? activeModelId;
+        const target = models.find((m) => m.id === modelId) ?? activeModel;
+        const result = await api.modify(prompt, target.code, image);
         setModels((current) =>
           current.map((m) =>
-            m.id === activeModelId
+            m.id === target.id
               ? {
                   ...m,
                   code: result.code,
+                  // Only replace the seeded placeholder name — a name the user
+                  // already set (by generation or manual rename) is left alone.
+                  name: m.name === 'Default model' && result.title ? result.title : m.name,
                 }
               : m,
           ),
         );
+        if (target.id !== activeModelId) {
+          setActiveModelId(target.id);
+          setSelectedModelIds([target.id]);
+        }
         setStatus({ kind: 'info', text: 'Model modified by the AI agent.' });
       }),
-    [run, code, activeModelId],
+    [run, models, activeModel, activeModelId],
+  );
+
+  /**
+   * Model-screen single-input gate: asks the server to classify the message
+   * as a new build or an edit of something that already exists, then routes
+   * to `generate`/`modify` accordingly, instead of the composer's Enter key
+   * hard-coding one of them (previously always `modify`, which meant a first
+   * "generate a red car" edited the seeded placeholder in place).
+   *
+   * Never throws: a classification failure (or no API key) falls back to
+   * `generate`, same as the server-side default — an unroutable message
+   * should append a new model rather than overwrite one the user liked.
+   */
+  const route = useCallback(
+    async (prompt: string, image?: ReferenceImage) => {
+      const modelContext = models.map((m) => ({ id: m.id, name: m.name, layers: extractLayers(m.code) }));
+      let intent: Awaited<ReturnType<typeof api.classifyIntent>> = { intent: 'generate' };
+      try {
+        intent = await api.classifyIntent(prompt, modelContext, activeModelId);
+      } catch {
+        intent = { intent: 'generate' };
+      }
+      if (intent.intent === 'modify' && models.some((m) => m.id === intent.targetModelId)) {
+        await modify(prompt, image, intent.targetModelId);
+      } else {
+        await generate(prompt, image);
+      }
+    },
+    [models, activeModelId, modify, generate],
   );
 
   /**
@@ -757,6 +796,7 @@ export function useSceneProject() {
     previewModelName,
     generate,
     modify,
+    route,
     importModel,
     animate,
     aspectRatio,

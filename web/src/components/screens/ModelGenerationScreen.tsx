@@ -65,6 +65,7 @@ export function ModelGenerationScreen({ project }: Props) {
             status={project.status}
             onGenerate={project.generate}
             onModify={project.modify}
+            onSmartSend={project.route}
           />
         </section>
         <ResizeHandle direction="vertical" onPointerDown={chatHeight.startDragging} label="Resize chat panel" />

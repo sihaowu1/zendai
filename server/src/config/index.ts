@@ -7,7 +7,15 @@ dotenv.config({ path: path.join(repoRoot, '.env') });
 
 export interface AppConfig {
   server: { port: number };
-  ai: { model: string; maxTokens: number; maxAgentIterations: number };
+  ai: {
+    model: string;
+    /** Cheap model for short classification calls (chat intent routing). */
+    fastModel: string;
+    maxTokens: number;
+    maxAgentIterations: number;
+    /** Off by default: it stacks a round-trip plus a possible regeneration on generation latency. */
+    critique: { enabled: boolean; maxIterations: number };
+  };
   auth0: {
     domain: string;
     audience: string;
@@ -30,11 +38,28 @@ const raw = JSON.parse(
   fs.readFileSync(path.join(repoRoot, 'config', 'default.config.json'), 'utf8'),
 ) as AppConfig;
 
+function envBool(name: string, fallback: boolean): boolean {
+  const value = process.env[name];
+  if (value === undefined) return fallback;
+  return ['1', 'true', 'yes', 'on'].includes(value.toLowerCase());
+}
+
 /** File config merged with environment-variable overrides. */
 export const config: AppConfig = {
   ...raw,
   server: { port: Number(process.env.PORT ?? raw.server.port) },
-  ai: { ...raw.ai, model: process.env.ANTHROPIC_MODEL ?? raw.ai.model },
+  ai: {
+    ...raw.ai,
+    model: process.env.ANTHROPIC_MODEL ?? raw.ai.model,
+    fastModel: process.env.ANTHROPIC_FAST_MODEL ?? raw.ai.fastModel ?? raw.ai.model,
+    critique: {
+      enabled: envBool('AI_CRITIQUE_ENABLED', raw.ai.critique?.enabled ?? false),
+      maxIterations: Math.min(
+        2,
+        Number(process.env.AI_CRITIQUE_MAX_ITERATIONS ?? raw.ai.critique?.maxIterations ?? 1),
+      ),
+    },
+  },
   auth0: {
     domain: process.env.AUTH0_DOMAIN ?? raw.auth0?.domain ?? '',
     // Strip trailing slashes — Auth0 identifiers are exact-match.

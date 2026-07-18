@@ -27,6 +27,13 @@ interface Props {
   status: Status | null;
   onGenerate: (prompt: string, image?: ReferenceImage) => void;
   onModify: (prompt: string, image?: ReferenceImage) => void;
+  /**
+   * Enter/submit routing. When provided (Model screen), it decides generate
+   * vs modify per message instead of always calling `onModify` — see
+   * `useSceneProject`'s `route`. Omitted on the Video screen, where Enter
+   * keeps its old fixed meaning (Animate primary / Modify submit).
+   */
+  onSmartSend?: (prompt: string, image?: ReferenceImage) => void;
   /** Primary action label (default Generate). Video screen uses Animate. */
   generateLabel?: string;
   modifyLabel?: string;
@@ -78,6 +85,7 @@ export function ChatPanel({
   status,
   onGenerate,
   onModify,
+  onSmartSend,
   generateLabel = 'Generate',
   modifyLabel = 'Modify',
   placeholder = 'Ask to modify the model, or generate a new one…',
@@ -164,7 +172,7 @@ export function ChatPanel({
     closeCamera();
   }, [closeCamera]);
 
-  const send = (kind: 'generate' | 'modify') => {
+  const send = (kind: 'generate' | 'modify' | 'auto') => {
     const prompt = input.trim();
     if (!prompt) return;
     const image = attachedImage;
@@ -175,6 +183,8 @@ export function ChatPanel({
     setInput('');
     setAttachedImage(null);
     if (kind === 'generate') onGenerate(prompt, image?.ref);
+    else if (kind === 'modify') onModify(prompt, image?.ref);
+    else if (onSmartSend) onSmartSend(prompt, image?.ref);
     else onModify(prompt, image?.ref);
   };
 
@@ -239,7 +249,7 @@ export function ChatPanel({
         className={`flex flex-shrink-0 flex-col ${COMPOSER}`}
         onSubmit={(event) => {
           event.preventDefault();
-          if (!disabled) send('modify');
+          if (!disabled) send('auto');
         }}
       >
         {attachedImage && (
@@ -266,7 +276,7 @@ export function ChatPanel({
           onKeyDown={(event) => {
             if (event.key === 'Enter' && !event.shiftKey && !disabled) {
               event.preventDefault();
-              send('modify');
+              send('auto');
             }
           }}
           onPaste={(event) => {
@@ -314,22 +324,28 @@ export function ChatPanel({
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           </IconButton>
-          <Button
-            variant="ghost"
-            type="button"
-            disabled={disabled}
-            title="Build a new model from this prompt"
-            onClick={() => send('generate')}
-          >
-            {generateLabel}
-          </Button>
+          {!onSmartSend && (
+            <Button
+              variant="ghost"
+              type="button"
+              disabled={disabled}
+              title="Always build a new model from this prompt, regardless of what it decides"
+              onClick={() => send('generate')}
+            >
+              {generateLabel}
+            </Button>
+          )}
           <Button
             variant="primary"
             type="submit"
             disabled={disabled}
-            title="Edit the current model (Enter)"
+            title={
+              onSmartSend
+                ? 'Generate or modify — decided automatically from your message (Enter)'
+                : 'Edit the current model (Enter)'
+            }
           >
-            {modifyLabel}
+            {onSmartSend ? 'Send' : modifyLabel}
           </Button>
         </div>
       </form>

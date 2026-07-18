@@ -4,8 +4,13 @@
   },
   "ai": {
     "model": "anthropic/claude-sonnet-4.5",
+    "fastModel": "anthropic/claude-haiku-4.5",
     "maxTokens": 16000,
-    "maxAgentIterations": 8
+    "maxAgentIterations": 8,
+    "critique": {
+      "enabled": false,
+      "maxIterations": 1
+    }
   },
   "auth0": {
     "domain": "",

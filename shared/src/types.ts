@@ -94,11 +94,105 @@ export interface RenderSettings {
   height: number;
 }
 
+// ─── Scene spec ─────────────────────────────────────────────────────────────
+
+/**
+ * The structural plan generation produces before writing any code. Declaring
+ * the parts, materials and tunables up front means the code turn has one job,
+ * and gives the validator something to check the emitted module against.
+ */
+
+/** One named part of the subject, positioned relative to its parent. */
+export interface SpecComponent {
+  id: string;
+  parent: string | null;
+  primitive: string;
+  dims: number[];
+  position: [number, number, number];
+  rotation?: [number, number, number];
+  pivot?: [number, number, number];
+  /** Key into `SceneSpec.materials`. */
+  material: string;
+}
+
+export interface SpecMaterial {
+  color: string;
+  roughness: number;
+  metalness: number;
+}
+
+export interface SpecLight {
+  type: string;
+  position: [number, number, number];
+  intensity: number;
+  color: string;
+}
+
+/** A planned tunable. Mirrors `TunableParam`, plus the parts it drives. */
+export interface SpecParam {
+  name: string;
+  label: string;
+  type: 'number' | 'boolean' | 'color';
+  value: number | boolean | string;
+  min?: number;
+  max?: number;
+  step?: number;
+  /** Component ids this param affects. */
+  targets: string[];
+}
+
+export interface SceneSpec {
+  subject: string;
+  complexity: 'simple' | 'moderate' | 'detailed';
+  components: SpecComponent[];
+  materials: Record<string, SpecMaterial>;
+  lights: SpecLight[];
+  camera: {
+    position: [number, number, number];
+    lookAt: [number, number, number];
+    fov: number;
+  };
+  params: SpecParam[];
+}
+
 /** What the generation API returns to the editor. */
 export interface GenerationResult {
   code: string;
   tunables: TunableParam[];
   source: 'model' | 'template';
+  /** Absent on the offline template path and on pre-spec projects. */
+  spec?: SceneSpec;
+  /**
+   * Plain-language description of what the agent built or changed, written by
+   * the code turn alongside the module. Shown as the assistant's chat reply.
+   */
+  summary?: string;
+  /** Short display title for the model list, e.g. "Red Sports Car". */
+  title?: string;
+}
+
+// ─── Chat intent ────────────────────────────────────────────────────────────
+
+/**
+ * A model reduced to what intent routing needs to match a prompt against it:
+ * its name and its layer names. Deliberately excludes code — the classifier
+ * runs on every message and must stay cheap.
+ */
+export interface IntentModelContext {
+  id: string;
+  name: string;
+  layers: string[];
+}
+
+/** Where the chat composer's single submit should route a message. */
+export interface ChatIntent {
+  intent: 'generate' | 'modify';
+  /** The model an edit targets. Only meaningful when `intent` is `modify`. */
+  targetModelId?: string;
+  /** Layers the edit is expected to touch, used to highlight them while it runs. */
+  targetLayers?: string[];
+  /** Short clause naming what is about to happen, e.g. "recolouring tableTop". */
+  reason?: string;
 }
 
 // ─── Marketplace ────────────────────────────────────────────────────────────
