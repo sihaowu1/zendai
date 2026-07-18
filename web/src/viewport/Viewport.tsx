@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowsClockwise, GridFour, Lightbulb } from '@phosphor-icons/react';
 import { SceneRuntime, type SceneEntry } from './SceneRuntime';
+import { IconButton } from '../components/ui/Button';
 
 interface Props {
   /** Single-scene shorthand used by most call sites. */
@@ -17,17 +19,21 @@ interface Props {
    * scene at an exact instant instead (Video/Export screens).
    */
   time?: number;
+  /** Shows the grid/lighting/camera toolbar. Off for read-only previews. */
+  showToolbar?: boolean;
 }
 
 /**
  * The WebGL preview panel. Debounces code changes (typing, slider drags, AI
  * output) and hot-reloads them into the SceneRuntime.
  */
-export function Viewport({ code, scenes, onModelClick, time }: Props) {
+export function Viewport({ code, scenes, onModelClick, time, showToolbar = false }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const runtimeRef = useRef<SceneRuntime | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [grid, setGrid] = useState(false);
+  const [fill, setFill] = useState(false);
   // Kept in a ref so the mount-only effect below always calls the latest
   // handler without needing to recreate the runtime when it changes.
   const onModelClickRef = useRef(onModelClick);
@@ -78,9 +84,57 @@ export function Viewport({ code, scenes, onModelClick, time }: Props) {
     if (time !== undefined) runtimeRef.current?.setTime(time);
   }, [time]);
 
+  // The runtime holds these across rebuilds, so each effect only has to push
+  // the change; `rebuild` re-applies whatever it was last told.
+  useEffect(() => {
+    runtimeRef.current?.setGridVisible(grid);
+  }, [grid]);
+
+  useEffect(() => {
+    runtimeRef.current?.setFillLightsVisible(fill);
+  }, [fill]);
+
   return (
     <div className="relative h-full min-h-0 w-full min-w-0 bg-black" ref={containerRef}>
       <canvas className="block h-full w-full" ref={canvasRef} />
+      {showToolbar && (
+        <div
+          // Floated over the canvas rather than given its own strip: the
+          // viewport is the one place on screen that should feel uninterrupted.
+          className="absolute right-2.5 top-2.5 flex items-center gap-0.5 rounded-lg border border-border bg-bg-panel/85 p-1 backdrop-blur-sm"
+          role="toolbar"
+          aria-label="Viewport settings"
+        >
+          <IconButton
+            active={grid}
+            className="h-7 w-7"
+            title="Toggle grid"
+            aria-label="Toggle grid"
+            aria-pressed={grid}
+            onClick={() => setGrid((v) => !v)}
+          >
+            <GridFour size={15} aria-hidden="true" />
+          </IconButton>
+          <IconButton
+            active={fill}
+            className="h-7 w-7"
+            title="Toggle fill lighting"
+            aria-label="Toggle fill lighting"
+            aria-pressed={fill}
+            onClick={() => setFill((v) => !v)}
+          >
+            <Lightbulb size={15} aria-hidden="true" />
+          </IconButton>
+          <IconButton
+            className="h-7 w-7"
+            title="Reset camera"
+            aria-label="Reset camera"
+            onClick={() => runtimeRef.current?.resetCamera()}
+          >
+            <ArrowsClockwise size={15} aria-hidden="true" />
+          </IconButton>
+        </div>
+      )}
       {error && (
         <div className="absolute bottom-2.5 left-2.5 right-2.5 whitespace-pre-wrap rounded-md border border-error bg-[rgba(30,8,10,0.92)] px-3 py-2 font-mono text-xs text-[#ffb4b8]">
           {error}

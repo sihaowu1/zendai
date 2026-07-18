@@ -2,7 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import type { Status } from '../state/useSceneProject';
 import { Button } from './ui/Button';
 import { PANEL_HEADER } from './ui/Panel';
-import { FIELD } from './ui/Input';
+
+/** The composer's outer shell — the border `FIELD` would otherwise put on the textarea alone. */
+const COMPOSER =
+  'rounded-lg border border-border bg-bg transition-[border-color,box-shadow] duration-100 ' +
+  'focus-within:border-border-strong focus-within:ring-2 focus-within:ring-white/10 motion-reduce:transition-none';
 
 /**
  * A single chat entry rendered in the message list.
@@ -79,17 +83,9 @@ export function ChatPanel({ busy, status, onGenerate, onModify, showTitle = true
         </h2>
       )}
       <div ref={listRef} className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto pr-1">
-        {/* An empty screen is an invitation to act, so it centres in the space
-            it owns and names the two things you can do rather than floating a
-            line of italic prose at the top of a tall blank column. */}
-        {messages.length === 0 && (
-          <div className="flex flex-1 flex-col items-center justify-center gap-1.5 px-3 text-center">
-            <p className="m-0 text-[14px] font-semibold text-text-dim">Describe a scene</p>
-            <p className="m-0 text-[13px] leading-normal text-text-faint">
-              Generate builds a new scene. Modify edits the one you're looking at.
-            </p>
-          </div>
-        )}
+        {/* No empty-state copy: the input's own placeholder already says what
+            to type, and the two buttons name what they do. A paragraph
+            explaining them was a third statement of the same thing. */}
         {messages.map((m) => (
           <div
             key={m.id}
@@ -107,8 +103,11 @@ export function ChatPanel({ busy, status, onGenerate, onModify, showTitle = true
         ))}
         {busy !== null && <div className="self-start px-1 py-1 text-[14px] italic text-text-dim">{busy}</div>}
       </div>
+      {/* Field and actions share one bordered container so the composer reads
+          as a single command box. The border lives here, and the textarea
+          inside it is chromeless, rather than each part drawing its own edge. */}
       <form
-        className="flex flex-shrink-0 flex-col gap-1.5"
+        className={`flex flex-shrink-0 flex-col ${COMPOSER}`}
         onSubmit={(event) => {
           event.preventDefault();
           if (!disabled) send('modify');
@@ -117,9 +116,9 @@ export function ChatPanel({ busy, status, onGenerate, onModify, showTitle = true
         <textarea
           value={input}
           onChange={(event) => setInput(event.target.value)}
-          placeholder="Ask to modify the model, or generate a new one…"
+          placeholder="Describe a model, or ask for a change…"
           rows={2}
-          className={`resize-none font-sans ${FIELD}`}
+          className="w-full resize-none border-none bg-transparent px-2.5 pb-1 pt-2 font-sans text-[14px] text-text outline-none placeholder:text-text-faint disabled:cursor-not-allowed disabled:text-text-faint"
           disabled={busy !== null}
           onKeyDown={(event) => {
             // Enter sends (Modify). Shift+Enter inserts a newline.
@@ -129,11 +128,17 @@ export function ChatPanel({ busy, status, onGenerate, onModify, showTitle = true
             }
           }}
         />
-        <div className="flex justify-end gap-1.5">
-          <Button variant="secondary" type="button" disabled={disabled} onClick={() => send('generate')}>
+        <div className="flex justify-end gap-1.5 px-1.5 pb-1.5">
+          <Button
+            variant="ghost"
+            type="button"
+            disabled={disabled}
+            title="Build a new model from this prompt"
+            onClick={() => send('generate')}
+          >
             Generate
           </Button>
-          <Button variant="primary" type="submit" disabled={disabled}>
+          <Button variant="primary" type="submit" disabled={disabled} title="Edit the current model (Enter)">
             Modify
           </Button>
         </div>

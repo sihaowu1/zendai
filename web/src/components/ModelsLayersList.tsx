@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { extractLayers } from '@motionforge/shared';
 import { CaretRight, PencilSimple, Trash } from '@phosphor-icons/react';
 import type { SceneModel } from '../state/useSceneProject';
+import { Button } from './ui/Button';
 
 interface Props {
   models: SceneModel[];
@@ -88,26 +89,22 @@ export function ModelsLayersList({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          className="btn btn-secondary"
-          disabled={!canMerge}
-          onClick={onMergeSelected}
-          title={
-            canMerge
-              ? 'Place selected models side-by-side on one plane'
-              : 'Shift-click two or more models to merge'
-          }
-        >
-          Merge selected
-        </button>
-        <span className="text-[11px] text-text-dim">
-          {canMerge
-            ? `${selectedModelIds.length} selected`
-            : 'Shift-click to select multiple'}
-        </span>
-      </div>
+      {/* The merge affordance only earns a row once it is reachable. The
+          standing "Shift-click to select multiple" hint moved into the
+          button's tooltip, where it is available without costing space. */}
+      {canMerge && (
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[11px] text-text-dim">{selectedModelIds.length} selected</span>
+          <Button
+            variant="secondary"
+            type="button"
+            onClick={onMergeSelected}
+            title="Place selected models side-by-side on one plane"
+          >
+            Merge
+          </Button>
+        </div>
+      )}
 
       <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
         {models.map((model) => {

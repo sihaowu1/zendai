@@ -1,6 +1,5 @@
 import { Link, NavLink, Navigate, Route, Routes } from 'react-router-dom';
 import { useSceneProject } from '../../state/useSceneProject';
-import { StatusBar } from './StatusBar';
 import { Logo } from './Logo';
 import { ModelGenerationScreen } from '../screens/ModelGenerationScreen';
 import { VideoGenerationScreen } from '../screens/VideoGenerationScreen';
@@ -96,7 +95,6 @@ export function App() {
           <Route path="*" element={<Navigate to="/model" replace />} />
         </Routes>
       </div>
-      <StatusBar busy={project.busy} status={project.status} />
     </div>
   );
 }

@@ -76,7 +76,10 @@ export function ModelGenerationScreen({ project }: Props) {
         </section>
         <ResizeHandle direction="vertical" onPointerDown={chatHeight.startDragging} label="Resize chat panel" />
         <section className="flex min-h-0 flex-1 flex-col gap-2 p-3" aria-label="Models & Layers">
-          <h2 className={`flex-shrink-0 ${PANEL_HEADER}`}>
+          <h2
+            className={`flex-shrink-0 ${PANEL_HEADER}`}
+            title="Click to select a model. Shift-click to select several and merge them."
+          >
             Models &amp; Layers
           </h2>
           <div className="min-h-0 flex-1 overflow-y-auto">
@@ -94,7 +97,7 @@ export function ModelGenerationScreen({ project }: Props) {
         </section>
       </div>
       <ResizeHandle direction="horizontal" onPointerDown={leftWidth.startDragging} label="Resize sidebar" />
-      <Viewport scenes={project.viewportScenes} onModelClick={setClickAnchor} />
+      <Viewport scenes={project.viewportScenes} onModelClick={setClickAnchor} showToolbar />
       {clickAnchor && (
         <ControlsFloater
           anchor={clickAnchor}

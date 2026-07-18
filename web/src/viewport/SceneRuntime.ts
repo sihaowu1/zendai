@@ -13,6 +13,7 @@ interface LoadedEntry {
   objects: unknown;
 }
 
+
 /** Horizontal gap (world units) between co-viewed models on the shared ground plane. */
 const MERGE_SPACING = 4;
 
@@ -42,6 +43,12 @@ export class SceneRuntime {
   private controlledTime: number | null = null;
   private raycaster = new THREE.Raycaster();
   private pointerDownPos: { x: number; y: number } | null = null;
+  private grid: THREE.GridHelper | null = null;
+  private fillLights: THREE.Group | null = null;
+  private gridVisible = false;
+  private fillVisible = false;
+  /** Camera pose the current scene was framed with, restored by `resetCamera`. */
+  private homeCamera = { position: new THREE.Vector3(4, 2.6, 5.5), target: new THREE.Vector3(0, 0.8, 0) };
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -95,6 +102,23 @@ export class SceneRuntime {
     this.controlledTime = time;
   }
 
+  setGridVisible(visible: boolean): void {
+    this.gridVisible = visible;
+    this.syncHelpers();
+  }
+
+  setFillLightsVisible(visible: boolean): void {
+    this.fillVisible = visible;
+    this.syncHelpers();
+  }
+
+  /** Return the camera to the pose the current scene was framed with. */
+  resetCamera(): void {
+    this.camera.position.copy(this.homeCamera.position);
+    this.controls.target.copy(this.homeCamera.target);
+    this.controls.update();
+  }
+
   resize(width: number, height: number): void {
     if (width === 0 || height === 0) return;
     this.renderer.setSize(width, height, false);
@@ -143,6 +167,8 @@ export class SceneRuntime {
     disposeScene(this.scene);
     this.scene = new THREE.Scene();
     this.entries = [];
+    this.grid = null;
+    this.fillLights = null;
 
     const primary = loaded[0]?.module;
     if (primary?.CAMERA?.position) this.camera.position.set(...primary.CAMERA.position);
@@ -189,6 +215,43 @@ export class SceneRuntime {
       } catch (err) {
         this.onError(err instanceof Error ? err : new Error(String(err)));
       }
+    }
+
+    // Framing is settled by this point (module CAMERA plus the merge pull-back),
+    // so this is the pose "reset camera" should return to.
+    this.homeCamera.position.copy(this.camera.position);
+    this.homeCamera.target.copy(this.controls.target);
+
+    this.syncHelpers();
+  }
+
+  /**
+   * Grid and fill lights are viewport furniture, not part of the model, so they
+   * are created lazily and re-added after every rebuild drops the old scene.
+   */
+  private syncHelpers(): void {
+    if (this.gridVisible) {
+      if (!this.grid) {
+        this.grid = new THREE.GridHelper(20, 20, 0x4a4a4a, 0x2c2c2c);
+      }
+      if (this.grid.parent !== this.scene) this.scene.add(this.grid);
+    } else if (this.grid?.parent) {
+      this.scene.remove(this.grid);
+    }
+
+    if (this.fillVisible) {
+      if (!this.fillLights) {
+        const group = new THREE.Group();
+        group.name = 'viewport:fill';
+        group.add(new THREE.AmbientLight(0xffffff, 0.55));
+        const key = new THREE.DirectionalLight(0xffffff, 0.9);
+        key.position.set(4, 6, 5);
+        group.add(key);
+        this.fillLights = group;
+      }
+      if (this.fillLights.parent !== this.scene) this.scene.add(this.fillLights);
+    } else if (this.fillLights?.parent) {
+      this.scene.remove(this.fillLights);
     }
   }
 
