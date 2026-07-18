@@ -35,7 +35,8 @@ web (editor + controls + viewport)
    ▼
 server/routes  ─▶  server/agents (orchestrator)
    │                    │
-   │                    ├─▶ server/ai (Claude + threejs-modelling / remotion-mp4 skills)
+   │                    ├─▶ server/ai (Claude + scene-generation / img2threejs / camera-composition /
+   │                    │        threejs-animation / remotion-mp4 skills)
    │                    │        │ offline fallback ▶ server/agents/templateFallback (shared/sceneTemplate)
    │                    ├─▶ server/mcp (Blender MCP client) ─▶ blender/mcp/server.py ─▶ blender/addon.py (in Blender)
    │                    └─▶ server/remotion/renderer ─▶ remotion/ (bundle + render) ─▶ renders/*.mp4
@@ -82,7 +83,7 @@ server/export (code ZIP via shared templates, MP4 job polling)
 ## The scene-module contract
 
 Every generated model follows the Three.js modelling contract (see
-`skills/threejs-modelling/SKILL.md`):
+`skills/scene-generation/SKILL.md`):
 
 - **Three.js module** (`scene.module.js`): no `import`/`require`/`fetch` — the host injects
   `THREE`. Must export `PARAMS`, optional `CAMERA`, `buildScene({ THREE, scene, params })`, and
@@ -97,8 +98,14 @@ Every generated model follows the Three.js modelling contract (see
   single parser/patcher for this — controls patch the PARAMS block directly rather than
   re-serializing the whole module.
 
-Claude Skills that drive this: `skills/threejs-modelling/SKILL.md` (component Three.js
-modelling) and `skills/remotion-mp4/SKILL.md` (fps/duration/resolution planning for a render).
+Claude Skills that drive this: `skills/scene-generation/SKILL.md` (scene + Blender script
+generation/modification), `skills/img2threejs/SKILL.md` (reconstructs a model from an attached
+reference image via component decomposition, used instead of `scene-generation` when an image is
+present), `skills/camera-composition/SKILL.md` (translates a prompt's implied shot type and
+spatial layout into concrete object placement and `CAMERA` position/lookAt/fov — loaded alongside
+`scene-generation`/`img2threejs` in `sceneAgent.ts` and `blenderAgent.ts`), `skills/threejs-animation/SKILL.md`
+(adds one-shot timeline animations to an existing model), and `skills/remotion-mp4/SKILL.md`
+(fps/duration/resolution planning for a render, invoked before an MP4 export).
 
 ## Config
 

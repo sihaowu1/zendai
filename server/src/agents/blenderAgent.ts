@@ -45,7 +45,7 @@ export async function runBlenderAgent(client: Anthropic, prompt: string): Promis
       model: config.ai.model,
       max_tokens: config.ai.maxTokens,
       thinking: { type: 'adaptive' },
-      system: loadSkill('scene-generation') + DIRECTIVE,
+      system: `${loadSkill('scene-generation')}\n\n${loadSkill('camera-composition')}${DIRECTIVE}`,
       tools,
       messages,
     });

@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import type { TunableParam } from '@motionforge/shared';
 import { ControlsFloater } from './controls/ControlsFloater';
 import type { ParamChange } from './controls/ControlsPanel';
 import type { Mp4JobState } from '../state/useSceneProject';
-import { Viewport } from '../viewport/Viewport';
+import type { ObjectHandle } from '../viewport/SceneRuntime';
+import { Viewport, type ViewportHandle } from '../viewport/Viewport';
 
 interface Props {
   job: Mp4JobState | null;
@@ -26,23 +27,35 @@ interface Props {
  * as the Model Generation screen (click the model to open its
  * sliders/switches). Shared between the Video Generation and Export screens
  * so both show the exact same "resulting video" surface.
+ *
+ * Forwards a `ViewportHandle` so callers outside the click-to-edit flow (e.g.
+ * the Video screen's "Camera" button) can reach the live camera directly.
  */
-export function VideoPreview({
-  job,
-  code,
-  scenes,
-  tunables,
-  onParamChange,
-  modelName,
-  enableClickFloater = true,
-  time,
-}: Props) {
-  const [clickAnchor, setClickAnchor] = useState<{ x: number; y: number } | null>(null);
+export const VideoPreview = forwardRef<ViewportHandle, Props>(function VideoPreview(
+  { job, code, scenes, tunables, onParamChange, modelName, enableClickFloater = true, time },
+  ref,
+) {
+  const [selection, setSelection] = useState<{ anchor: { x: number; y: number }; handle: ObjectHandle } | null>(
+    null,
+  );
+  const viewportRef = useRef<ViewportHandle>(null);
 
-  // A different model becoming active invalidates whatever was anchored.
+  useImperativeHandle(
+    ref,
+    () => ({
+      getCameraHandle: () => viewportRef.current?.getCameraHandle() ?? null,
+      clearCameraOverride: () => viewportRef.current?.clearCameraOverride(),
+      setAxesVisible: (visible) => viewportRef.current?.setAxesVisible(visible),
+    }),
+    [],
+  );
+
+  // A different model becoming active, or its code changing underneath the
+  // click (e.g. an AI modify), invalidates whatever was selected — the old
+  // handle's object no longer exists once the scene rebuilds.
   useEffect(() => {
-    setClickAnchor(null);
-  }, [modelName]);
+    setSelection(null);
+  }, [modelName, code]);
 
   if (job?.status === 'done' && job.url) {
     return (
@@ -67,9 +80,10 @@ export function VideoPreview({
   return (
     <div className="relative h-full w-full">
       <Viewport
+        ref={viewportRef}
         code={code}
         scenes={scenes}
-        onModelClick={enableClickFloater ? setClickAnchor : undefined}
+        onModelClick={enableClickFloater ? (anchor, handle) => setSelection({ anchor, handle }) : undefined}
         time={time}
       />
       {job?.status === 'running' && (
@@ -83,15 +97,16 @@ export function VideoPreview({
       {!job && enableClickFloater && (
         <div className={badgeClass}>Live preview — click the model to tweak it</div>
       )}
-      {enableClickFloater && clickAnchor && (
+      {enableClickFloater && selection && (
         <ControlsFloater
-          anchor={clickAnchor}
+          anchor={selection.anchor}
           title={modelName}
+          objectHandle={selection.handle}
           tunables={tunables}
           onChange={onParamChange}
-          onClose={() => setClickAnchor(null)}
+          onClose={() => setSelection(null)}
         />
       )}
     </div>
   );
-}
+});

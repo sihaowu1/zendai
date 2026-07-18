@@ -41,6 +41,11 @@
   --color-ok: #34e58b;
   --color-warn: #ffc247;
 
+  /* Match THREE.AxesHelper's default X/Y/Z line colors (red/green/blue) shown by the "Axes" viewport toggle. */
+  --color-axis-x: #ff0000;
+  --color-axis-y: #00ff00;
+  --color-axis-z: #0000ff;
+
   /* Inter and JetBrains Mono are loaded in index.html and drive the landing
      page's type. They lead here too — putting -apple-system first meant the
      studio silently rendered in SF while the landing rendered in Inter. */

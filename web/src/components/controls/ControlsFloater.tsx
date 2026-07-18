@@ -2,13 +2,21 @@ import { useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { TunableParam } from '@motionforge/shared';
 import { X } from '@phosphor-icons/react';
+import type { ObjectHandle } from '../../viewport/SceneRuntime';
 import { ControlsPanel, type ParamChange } from './ControlsPanel';
+import { TransformControls } from './TransformControls';
 import { IconButton } from '../ui/Button';
 
 interface Props {
   /** Viewport-relative point (clientX/clientY) to anchor the floater near. */
   anchor: { x: number; y: number };
   title: string;
+  /** The clicked object's live position/rotation, from `Viewport`'s `onModelClick` — or the live camera, from the "Camera" button. */
+  objectHandle?: ObjectHandle;
+  /** Heading above the transform sliders. Defaults to "Position"; pass "Camera" for the camera editor. */
+  transformLabel?: string;
+  /** Set false to hide the PARAMS-driven tunables section (the camera editor has none). Defaults to true. */
+  showTunables?: boolean;
   tunables: TunableParam[];
   onChange: ParamChange;
   onClose: () => void;
@@ -19,7 +27,16 @@ interface Props {
  * unchanged. Dismisses on outside click or Escape. Only one is ever mounted
  * at a time by the caller, so there's no stacking to manage here.
  */
-export function ControlsFloater({ anchor, title, tunables, onChange, onClose }: Props) {
+export function ControlsFloater({
+  anchor,
+  title,
+  objectHandle,
+  transformLabel,
+  showTunables = true,
+  tunables,
+  onChange,
+  onClose,
+}: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState<{ left: number; top: number } | null>(null);
 
@@ -76,8 +93,9 @@ export function ControlsFloater({ anchor, title, tunables, onChange, onClose }: 
           <X size={14} />
         </IconButton>
       </header>
-      <div className="min-h-0 overflow-y-auto p-3 [&_section]:border-0 [&_section]:bg-transparent [&_section]:p-0">
-        <ControlsPanel tunables={tunables} onChange={onChange} />
+      <div className="flex min-h-0 flex-col gap-2.5 overflow-y-auto p-3 [&_section]:border-0 [&_section]:bg-transparent [&_section]:p-0">
+        {objectHandle && <TransformControls handle={objectHandle} label={transformLabel} />}
+        {showTunables && <ControlsPanel tunables={tunables} onChange={onChange} />}
       </div>
     </div>
   );

@@ -9,6 +9,23 @@ export interface TunableParam {
   step?: number;
 }
 
+/**
+ * Preview/composition aspect ratio for the Video Generation screen. This is
+ * purely a framing hint for scene generation (how the AI blocks objects and
+ * points the camera) and for the live viewport's letterboxing — it is
+ * independent of `RenderSettings.width`/`height`, which the remotion-mp4
+ * skill picks separately at export time.
+ */
+export type AspectRatio = '16:9' | '1:1' | '4:3';
+
+export const ASPECT_RATIOS: ReadonlyArray<{ value: AspectRatio; label: string; ratio: number }> = [
+  { value: '16:9', label: '16:9', ratio: 16 / 9 },
+  { value: '1:1', label: '1:1', ratio: 1 },
+  { value: '4:3', label: '4:3', ratio: 4 / 3 },
+];
+
+export const DEFAULT_ASPECT_RATIO: AspectRatio = '16:9';
+
 /** Optional camera specification exported by a scene module as CAMERA. */
 export interface CameraSpec {
   position?: [number, number, number];
