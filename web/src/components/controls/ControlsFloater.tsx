@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { TunableParam } from '@motionforge/shared';
-import { X } from '@phosphor-icons/react';
+import { X, Plus } from '@phosphor-icons/react';
 import type { ObjectHandle } from '../../viewport/SceneRuntime';
 import { ControlsPanel, type ParamChange } from './ControlsPanel';
 import { TransformControls } from './TransformControls';
@@ -20,6 +20,10 @@ interface Props {
   tunables: TunableParam[];
   onChange: ParamChange;
   onClose: () => void;
+  /** Called when the user requests a new custom slider. The AI will interpret the name and add it to the model. */
+  onAddSlider?: (name: string) => void;
+  /** Whether a slider is currently being added (AI working). */
+  addingSlider?: boolean;
 }
 
 /**
@@ -36,6 +40,8 @@ export function ControlsFloater({
   tunables,
   onChange,
   onClose,
+  onAddSlider,
+  addingSlider,
 }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState<{ left: number; top: number } | null>(null);
@@ -96,6 +102,70 @@ export function ControlsFloater({
       <div className="flex min-h-0 flex-col gap-2.5 overflow-y-auto p-3 [&_section]:border-0 [&_section]:bg-transparent [&_section]:p-0">
         {objectHandle && <TransformControls handle={objectHandle} label={transformLabel} />}
         {showTunables && <ControlsPanel tunables={tunables} onChange={onChange} />}
+        {showTunables && onAddSlider && (
+          <AddSliderInput onAdd={onAddSlider} busy={addingSlider} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AddSliderInput({ onAdd, busy }: { onAdd: (name: string) => void; busy?: boolean }) {
+  const [value, setValue] = useState('');
+  const [expanded, setExpanded] = useState(false);
+
+  const handleSubmit = () => {
+    const trimmed = value.trim();
+    if (!trimmed || busy) return;
+    onAdd(trimmed);
+    setValue('');
+    setExpanded(false);
+  };
+
+  if (!expanded) {
+    return (
+      <button
+        type="button"
+        className="mt-1 flex w-full items-center gap-1.5 rounded-md border border-dashed border-border px-2.5 py-2 text-[11px] text-text-dim transition-colors hover:border-text-dim hover:text-text-primary"
+        onClick={() => setExpanded(true)}
+      >
+        <Plus size={12} weight="bold" />
+        Add custom slider
+      </button>
+    );
+  }
+
+  return (
+    <div className="mt-1 flex flex-col gap-1.5">
+      <input
+        autoFocus
+        type="text"
+        placeholder="e.g. wheel size, arm length..."
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') handleSubmit();
+          if (e.key === 'Escape') setExpanded(false);
+        }}
+        disabled={busy}
+        className="w-full rounded-md border border-border bg-bg-raised px-2.5 py-1.5 text-[12px] text-text-primary placeholder:text-text-dim focus:border-accent focus:outline-none disabled:opacity-50"
+      />
+      <div className="flex items-center gap-1.5">
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={!value.trim() || busy}
+          className="flex-1 rounded-md bg-accent px-2 py-1 text-[11px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+        >
+          {busy ? 'Adding...' : 'Add'}
+        </button>
+        <button
+          type="button"
+          onClick={() => { setExpanded(false); setValue(''); }}
+          className="flex-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-dim transition-colors hover:text-text-primary"
+        >
+          Cancel
+        </button>
       </div>
     </div>
   );

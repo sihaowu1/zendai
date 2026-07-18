@@ -27,6 +27,7 @@ interface Props {
  */
 export function ModelGenerationScreen({ project }: Props) {
   const [clickAnchor, setClickAnchor] = useState<{ x: number; y: number } | null>(null);
+  const [addingSlider, setAddingSlider] = useState(false);
   const activeModel = project.models.find((m) => m.id === project.activeModelId);
   const importInputRef = useRef<HTMLInputElement>(null);
 
@@ -48,6 +49,19 @@ export function ModelGenerationScreen({ project }: Props) {
   useEffect(() => {
     setClickAnchor(null);
   }, [project.activeModelId]);
+
+  const handleAddSlider = async (name: string) => {
+    setAddingSlider(true);
+    try {
+      await project.modify(
+        `Add a new tunable slider called "${name}". Interpret what "${name}" likely controls on this model, ` +
+        `add a @tunable number PARAM for it with sensible @min/@max/@step and @label, and wire it ` +
+        `into updateScene so it visually affects the relevant parts. Keep all existing params and parts unchanged.`,
+      );
+    } finally {
+      setAddingSlider(false);
+    }
+  };
 
   return (
     <main
@@ -121,6 +135,8 @@ export function ModelGenerationScreen({ project }: Props) {
           tunables={project.tunables}
           onChange={project.setParam}
           onClose={() => setClickAnchor(null)}
+          onAddSlider={handleAddSlider}
+          addingSlider={addingSlider}
         />
       )}
     </main>
