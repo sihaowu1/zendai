@@ -5,7 +5,7 @@ import { useAuth } from "../../auth/useAuth";
 
 export default function Nav() {
   const [scrolled, setScrolled] = useState(false);
-  const { configured, isAuthenticated, isLoading, login, logout, user } = useAuth();
+  const { configured, isAuthenticated, isLoading, login } = useAuth();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -13,6 +13,9 @@ export default function Nav() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  const ctaClass =
+    "inline-flex h-9 items-center justify-center rounded-md bg-inkwell px-4 text-sm font-medium text-white transition-all duration-300 hover:bg-royal-blue hover:rounded-xl";
 
   return (
     <header
@@ -54,45 +57,16 @@ export default function Nav() {
           </nav>
 
           <div className="flex items-center gap-3">
-            {configured && !isLoading && (
-              isAuthenticated ? (
-                <>
-                  {user?.name && (
-                    <span className="hidden sm:inline font-mono-label text-slate-steel max-w-[10rem] truncate">
-                      {user.name}
-                    </span>
-                  )}
-                  <button
-                    type="button"
-                    onClick={logout}
-                    className="hidden sm:inline-flex font-mono-label text-slate-steel transition-colors hover:text-inkwell"
-                  >
-                    Log out
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => void login({ screenHint: "login" })}
-                    className="hidden sm:inline-flex font-mono-label text-slate-steel transition-colors hover:text-inkwell"
-                  >
-                    Sign in
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void login({ screenHint: "signup" })}
-                    className="hidden sm:inline-flex font-mono-label text-slate-steel transition-colors hover:text-inkwell"
-                  >
-                    Sign up
-                  </button>
-                </>
-              )
+            {configured && !isLoading && !isAuthenticated && (
+              <button
+                type="button"
+                onClick={() => void login({ screenHint: "login" })}
+                className={ctaClass}
+              >
+                Sign in
+              </button>
             )}
-            <Link
-              to="/model"
-              className="inline-flex items-center justify-center rounded-md bg-inkwell px-4 py-2 text-sm font-medium text-white transition-all duration-300 hover:bg-royal-blue hover:rounded-xl"
-            >
+            <Link to="/model" className={ctaClass}>
               {isAuthenticated ? "Open editor" : "Get Started"}
             </Link>
           </div>

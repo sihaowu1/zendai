@@ -375,7 +375,8 @@ select:focus {
   outline: 1px solid var(--accent);
 }
 
-button {
+/* Scoped to studio shell so landing Tailwind buttons aren't overridden. */
+.app button {
   background: var(--accent);
   color: #fff;
   border: none;
@@ -386,13 +387,13 @@ button {
   cursor: pointer;
 }
 
-button.secondary {
+.app button.secondary {
   background: var(--bg-raised);
   border: 1px solid var(--border);
   color: var(--text);
 }
 
-button:disabled {
+.app button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
