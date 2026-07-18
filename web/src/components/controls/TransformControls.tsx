@@ -9,10 +9,18 @@ interface Props {
   label?: string;
 }
 
-const AXES: Array<{ key: keyof ObjectTransform; label: string; min: number; max: number; step: number }> = [
-  { key: 'x', label: 'Position X', min: -10, max: 10, step: 0.05 },
-  { key: 'y', label: 'Position Y', min: -10, max: 10, step: 0.05 },
-  { key: 'z', label: 'Position Z', min: -10, max: 10, step: 0.05 },
+const AXES: Array<{
+  key: keyof ObjectTransform;
+  label: string;
+  min: number;
+  max: number;
+  step: number;
+  /** Matches the slider to the same X/Y/Z color as the viewport's "Axes" helper. Omitted for `angle`, which isn't a single axis. */
+  axis?: 'x' | 'y' | 'z';
+}> = [
+  { key: 'x', label: 'Position X', min: -10, max: 10, step: 0.05, axis: 'x' },
+  { key: 'y', label: 'Position Y', min: -10, max: 10, step: 0.05, axis: 'y' },
+  { key: 'z', label: 'Position Z', min: -10, max: 10, step: 0.05, axis: 'z' },
   { key: 'angle', label: 'Angle', min: -180, max: 180, step: 1 },
 ];
 
@@ -53,7 +61,7 @@ export function TransformControls({ handle, label = 'Position' }: Props) {
           max: axis.max,
           step: axis.step,
         };
-        return <SliderControl key={axis.key} param={param} onChange={handleChange} />;
+        return <SliderControl key={axis.key} param={param} onChange={handleChange} axis={axis.axis} />;
       })}
     </section>
   );

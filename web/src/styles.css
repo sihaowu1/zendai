@@ -17,6 +17,10 @@
   --color-error: #ff6470;
   --color-ok: #4ade80;
   --color-warn: #ffb84d;
+  /* Match THREE.AxesHelper's default X/Y/Z line colors (red/green/blue) shown by the "Axes" viewport toggle. */
+  --color-axis-x: #ff0000;
+  --color-axis-y: #00ff00;
+  --color-axis-z: #0000ff;
   --font-sans: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', system-ui, sans-serif;
   --font-mono: 'SF Mono', ui-monospace, 'JetBrains Mono', Menlo, Consolas, monospace;
 }
