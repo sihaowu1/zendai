@@ -5,9 +5,9 @@ import { loadSkill } from '../ai/skills';
 import { extractFencedBlocks } from '../ai/extract';
 
 /**
- * The scene agent: prompts Claude (with the scene-generation skill as its
- * system prompt) to write a Three.js scene module and a Blender Python script,
- * validates the result against the module contract, and retries once with the
+ * The scene agent: prompts Claude (with the threejs-modelling skill as its
+ * system prompt) to write a component-based Three.js scene module, validates
+ * the result against the module contract, and retries once with the
  * validator's feedback if the contract was violated.
  */
 
@@ -23,11 +23,12 @@ export async function generateScene(client: Anthropic, prompt: string): Promise<
     {
       role: 'user',
       content:
-        `Create a 3D scene from this prompt:\n\n${prompt}\n\n` +
-        'Return the ```javascript scene module and the ```python Blender script.',
+        `Create a component-based static Three.js model from this prompt:\n\n${prompt}\n\n` +
+        'Use named parts with per-part size tunables. Do not add time-based animation. ' +
+        'Return the ```javascript scene module.',
     },
   ];
-  return completeWithRetry(client, messages);
+  return completeWithRetry(client, messages, '');
 }
 
 export async function modifyScene(
@@ -40,18 +41,21 @@ export async function modifyScene(
     {
       role: 'user',
       content:
-        `Modify the current scene.\n\nInstruction: ${prompt}\n\n` +
+        `Modify the current component-based Three.js model.\n\nInstruction: ${prompt}\n\n` +
         `Current scene module:\n\`\`\`javascript\n${code}\n\`\`\`\n\n` +
-        `Current Blender script:\n\`\`\`python\n${blenderCode}\n\`\`\`\n\n` +
-        'Return the complete updated ```javascript and ```python blocks.',
+        'Preserve named parts and PARAMS unless the instruction changes them. ' +
+        'If asked to swap a part or add variants, update that component (and add style tunables if needed). ' +
+        'Do not add time-based animation. ' +
+        'Return the complete updated ```javascript block.',
     },
   ];
-  return completeWithRetry(client, messages);
+  return completeWithRetry(client, messages, blenderCode);
 }
 
 async function completeWithRetry(
   client: Anthropic,
   messages: Anthropic.MessageParam[],
+  previousBlenderCode: string,
 ): Promise<SceneCode> {
   let errors: string[] = [];
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -59,7 +63,7 @@ async function completeWithRetry(
       model: config.ai.model,
       max_tokens: config.ai.maxTokens,
       thinking: { type: 'adaptive' },
-      system: loadSkill('scene-generation'),
+      system: loadSkill('threejs-modelling'),
       messages,
     });
     const response = await stream.finalMessage();
@@ -72,10 +76,9 @@ async function completeWithRetry(
       .join('\n');
     const blocks = extractFencedBlocks(text);
     const js = blocks.find((block) => JS_LANGS.has(block.lang));
-    const py = blocks.find((block) => block.lang === 'python');
     errors = js ? validateSceneModule(js.code) : ['the response did not include a ```javascript block'];
     if (js && errors.length === 0) {
-      return { code: js.code, blenderCode: py?.code ?? '' };
+      return { code: js.code, blenderCode: previousBlenderCode };
     }
     // Feed the validator's errors back for one corrective attempt. The full
     // content (including thinking blocks) is echoed back unchanged.
@@ -84,7 +87,7 @@ async function completeWithRetry(
       role: 'user',
       content:
         `That response was rejected by the validator: ${errors.join('; ')}. ` +
-        'Return corrected ```javascript and ```python blocks that follow the contract exactly.',
+        'Return a corrected ```javascript block that follows the contract exactly.',
     });
   }
   throw new Error(`The model did not produce a valid scene module: ${errors.join('; ')}`);

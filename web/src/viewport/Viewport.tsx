@@ -1,8 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
-import { SceneRuntime } from './SceneRuntime';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { SceneRuntime, type SceneEntry } from './SceneRuntime';
 
 interface Props {
-  code: string;
+  /** Single-scene shorthand used by most call sites. */
+  code?: string;
+  /**
+   * Multi-scene co-view (merges). When provided and non-empty, takes
+   * precedence over `code` — each entry is built into its own offset group.
+   */
+  scenes?: SceneEntry[];
   /** Fired when the user clicks any rendered object (not empty space). */
   onModelClick?: (point: { x: number; y: number }) => void;
   /**
@@ -17,7 +23,7 @@ interface Props {
  * The WebGL preview panel. Debounces code changes (typing, slider drags, AI
  * output) and hot-reloads them into the SceneRuntime.
  */
-export function Viewport({ code, onModelClick, time }: Props) {
+export function Viewport({ code, scenes, onModelClick, time }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const runtimeRef = useRef<SceneRuntime | null>(null);
@@ -26,6 +32,20 @@ export function Viewport({ code, onModelClick, time }: Props) {
   // handler without needing to recreate the runtime when it changes.
   const onModelClickRef = useRef(onModelClick);
   onModelClickRef.current = onModelClick;
+
+  const resolvedScenes = useMemo<SceneEntry[]>(() => {
+    if (scenes && scenes.length > 0) return scenes;
+    if (code) return [{ id: 'scene', code }];
+    return [];
+  }, [scenes, code]);
+
+  // Stable signature so object-identity churn on `scenes` doesn't thrash reloads.
+  const scenesKey = useMemo(
+    () => resolvedScenes.map((s) => `${s.id}:${s.code}`).join('\0'),
+    [resolvedScenes],
+  );
+  const resolvedScenesRef = useRef(resolvedScenes);
+  resolvedScenesRef.current = resolvedScenes;
 
   useEffect(() => {
     if (!canvasRef.current || !containerRef.current) return;
@@ -48,11 +68,11 @@ export function Viewport({ code, onModelClick, time }: Props) {
     const handle = window.setTimeout(() => {
       setError(null);
       runtimeRef.current
-        ?.setCode(code)
+        ?.setScenes(resolvedScenesRef.current)
         .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
     }, 250);
     return () => window.clearTimeout(handle);
-  }, [code]);
+  }, [scenesKey]);
 
   useEffect(() => {
     if (time !== undefined) runtimeRef.current?.setTime(time);

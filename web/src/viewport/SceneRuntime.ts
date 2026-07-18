@@ -2,10 +2,27 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { validateSceneModule, type SceneModule } from '@motionforge/shared';
 
+export interface SceneEntry {
+  id: string;
+  code: string;
+}
+
+interface LoadedEntry {
+  id: string;
+  module: SceneModule;
+  objects: unknown;
+}
+
+/** Horizontal gap (world units) between co-viewed models on the shared ground plane. */
+const MERGE_SPACING = 4;
+
 /**
  * Live WebGL preview runtime. The editor's code string is hot-loaded as a real
  * ES module (Blob URL import), then buildScene/updateScene run against a
  * Three.js renderer with orbit controls. Any code change rebuilds the scene.
+ *
+ * Multiple entries are co-rendered side-by-side (not parented/constrained to
+ * each other) so merges can be viewed on one plane.
  */
 export class SceneRuntime {
   onError: (err: Error) => void = () => {};
@@ -17,8 +34,7 @@ export class SceneRuntime {
   private camera: THREE.PerspectiveCamera;
   private controls: OrbitControls;
   private scene = new THREE.Scene();
-  private module: SceneModule | null = null;
-  private objects: unknown = null;
+  private entries: LoadedEntry[] = [];
   private raf = 0;
   private startMs = performance.now();
   private frameErrorReported = false;
@@ -43,11 +59,31 @@ export class SceneRuntime {
   }
 
   async setCode(code: string): Promise<void> {
-    const errors = validateSceneModule(code);
-    if (errors.length > 0) throw new Error(errors.join('; '));
-    this.module = await loadSceneModule(code);
+    await this.setScenes([{ id: 'scene', code }]);
+  }
+
+  async setScenes(scenes: SceneEntry[]): Promise<void> {
+    if (scenes.length === 0) {
+      this.entries = [];
+      disposeScene(this.scene);
+      this.scene = new THREE.Scene();
+      return;
+    }
+
+    for (const entry of scenes) {
+      const errors = validateSceneModule(entry.code);
+      if (errors.length > 0) throw new Error(`${entry.id}: ${errors.join('; ')}`);
+    }
+
+    const loaded = await Promise.all(
+      scenes.map(async (entry) => ({
+        id: entry.id,
+        module: await loadSceneModule(entry.code),
+      })),
+    );
+
     this.frameErrorReported = false;
-    this.rebuild();
+    this.rebuild(loaded);
   }
 
   /**
@@ -103,35 +139,69 @@ export class SceneRuntime {
     }
   }
 
-  private rebuild(): void {
+  private rebuild(loaded: Array<{ id: string; module: SceneModule }>): void {
     disposeScene(this.scene);
     this.scene = new THREE.Scene();
-    const module = this.module;
-    if (!module) return;
-    const camera = module.CAMERA;
-    if (camera?.position) this.camera.position.set(...camera.position);
-    if (camera?.fov) {
-      this.camera.fov = camera.fov;
+    this.entries = [];
+
+    const primary = loaded[0]?.module;
+    if (primary?.CAMERA?.position) this.camera.position.set(...primary.CAMERA.position);
+    if (primary?.CAMERA?.fov) {
+      this.camera.fov = primary.CAMERA.fov;
       this.camera.updateProjectionMatrix();
     }
-    if (camera?.lookAt) this.controls.target.set(...camera.lookAt);
-    try {
-      this.objects = module.buildScene({ THREE, scene: this.scene, params: module.PARAMS });
-    } catch (err) {
-      this.onError(err instanceof Error ? err : new Error(String(err)));
+    if (primary?.CAMERA?.lookAt) this.controls.target.set(...primary.CAMERA.lookAt);
+
+    // Pull the camera back a bit when several models share the plane.
+    if (loaded.length > 1) {
+      const span = (loaded.length - 1) * MERGE_SPACING;
+      this.camera.position.x = 0;
+      this.camera.position.z = Math.max(this.camera.position.z, 5.5 + span * 0.45);
+      this.controls.target.set(0, 0.8, 0);
+    }
+
+    for (let i = 0; i < loaded.length; i++) {
+      const { id, module } = loaded[i];
+      const before = new Set(this.scene.children);
+      const backgroundBefore = this.scene.background;
+
+      try {
+        const objects = module.buildScene({
+          THREE,
+          scene: this.scene,
+          params: module.PARAMS,
+        });
+
+        const added = this.scene.children.filter((child) => !before.has(child));
+        const group = new THREE.Group();
+        group.name = `merge:${id}`;
+        group.position.x = (i - (loaded.length - 1) / 2) * MERGE_SPACING;
+        for (const obj of added) {
+          this.scene.remove(obj);
+          group.add(obj);
+        }
+        this.scene.add(group);
+
+        // Keep the first module's background; later modules may overwrite it.
+        if (i > 0) this.scene.background = backgroundBefore;
+
+        this.entries.push({ id, module, objects });
+      } catch (err) {
+        this.onError(err instanceof Error ? err : new Error(String(err)));
+      }
     }
   }
 
   private loop(now: number): void {
-    const module = this.module;
-    if (module) {
+    const time = this.controlledTime !== null ? this.controlledTime : (now - this.startMs) / 1000;
+    for (const entry of this.entries) {
       try {
-        module.updateScene({
+        entry.module.updateScene({
           THREE,
           scene: this.scene,
-          objects: this.objects,
-          params: module.PARAMS,
-          time: this.controlledTime !== null ? this.controlledTime : (now - this.startMs) / 1000,
+          objects: entry.objects,
+          params: entry.module.PARAMS,
+          time,
         });
       } catch (err) {
         if (!this.frameErrorReported) {

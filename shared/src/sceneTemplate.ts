@@ -1,15 +1,16 @@
 /**
  * Deterministic scene-code builders. They produce code that follows the same
- * contract the AI agents are instructed to follow (see skills/scene-generation).
+ * contract the AI agents are instructed to follow (see skills/threejs-modelling).
  * Used for: the editor's initial scene, the server's offline fallback when no
  * OPENROUTER_API_KEY is set, and the checked-in Remotion placeholder module.
+ *
+ * Models are static multi-part figures with per-part size tunables — no baked
+ * time-based animation.
  */
 
 export interface SceneTemplateOptions {
   title: string;
-  /** Three.js geometry expression, e.g. `new THREE.IcosahedronGeometry(params.radius, 3)` */
-  geometryExpr: string;
-  /** Hex color for the hero object, e.g. '#4f8ef7' */
+  /** Hex color for the figure, e.g. '#4f8ef7' */
   bodyColor: string;
 }
 
@@ -20,33 +21,28 @@ export function buildThreeSceneCode(options: SceneTemplateOptions): string {
 export const PARAMS = {
   /**
    * @tunable
-   * @min 0.2 @max 3 @step 0.05
-   * @label Size
+   * @min 0.5 @max 2 @step 0.05
+   * @label Head size
    */
-  radius: 1,
+  headSize: 1,
   /**
    * @tunable
-   * @min 0 @max 4 @step 0.05
-   * @label Spin speed
+   * @min 0.5 @max 2 @step 0.05
+   * @label Torso width
    */
-  spinSpeed: 0.8,
+  torsoWidth: 1,
   /**
    * @tunable
-   * @min 0 @max 2 @step 0.05
-   * @label Bob height
+   * @min 0.5 @max 2 @step 0.05
+   * @label Arm length
    */
-  bobHeight: 0.4,
+  armLength: 1,
   /**
    * @tunable
-   * @min 0.5 @max 6 @step 0.1
-   * @label Bob speed
+   * @min 0.5 @max 2 @step 0.05
+   * @label Leg length
    */
-  bobSpeed: 2,
-  /**
-   * @tunable
-   * @label Rotate
-   */
-  rotate: true,
+  legLength: 1,
   /**
    * @tunable
    * @label Wireframe
@@ -103,45 +99,97 @@ export function buildScene(ctx) {
   ground.rotation.x = -Math.PI / 2;
   scene.add(ground);
 
-  const body = new THREE.Mesh(
-    ${options.geometryExpr},
-    new THREE.MeshStandardMaterial({
-      color: params.bodyColor,
-      metalness: params.metalness,
-      roughness: params.roughness,
-      wireframe: params.wireframe,
-    })
-  );
-  body.position.y = params.radius + 0.2;
-  scene.add(body);
+  const mat = new THREE.MeshStandardMaterial({
+    color: params.bodyColor,
+    metalness: params.metalness,
+    roughness: params.roughness,
+    wireframe: params.wireframe,
+  });
+
+  const root = new THREE.Group();
+  scene.add(root);
+
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.0, 0.4), mat.clone());
+  torso.position.y = 1.35;
+  root.add(torso);
+
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.28, 24, 16), mat.clone());
+  head.position.y = 2.1;
+  root.add(head);
+
+  const leftArm = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.85, 0.22), mat.clone());
+  leftArm.position.set(-0.55, 1.35, 0);
+  root.add(leftArm);
+
+  const rightArm = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.85, 0.22), mat.clone());
+  rightArm.position.set(0.55, 1.35, 0);
+  root.add(rightArm);
+
+  const leftLeg = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.95, 0.26), mat.clone());
+  leftLeg.position.set(-0.22, 0.48, 0);
+  root.add(leftLeg);
+
+  const rightLeg = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.95, 0.26), mat.clone());
+  rightLeg.position.set(0.22, 0.48, 0);
+  root.add(rightLeg);
 
   const keyLight = new THREE.DirectionalLight('#ffffff', params.lightIntensity);
   keyLight.position.set(4, 6, 3);
   scene.add(keyLight);
   scene.add(new THREE.AmbientLight('#8899bb', 0.5));
 
-  return { body: body, ground: ground, keyLight: keyLight };
+  return {
+    root: root,
+    head: head,
+    torso: torso,
+    leftArm: leftArm,
+    rightArm: rightArm,
+    leftLeg: leftLeg,
+    rightLeg: rightLeg,
+    ground: ground,
+    keyLight: keyLight,
+  };
 }
 
 export function updateScene(ctx) {
   const params = ctx.params;
   const objects = ctx.objects;
-  const time = ctx.time;
 
-  if (params.rotate) {
-    objects.body.rotation.y = time * params.spinSpeed * Math.PI * 0.5;
+  objects.head.scale.setScalar(params.headSize);
+  objects.torso.scale.set(params.torsoWidth, 1, 1);
+  objects.leftArm.scale.set(1, params.armLength, 1);
+  objects.rightArm.scale.set(1, params.armLength, 1);
+  objects.leftLeg.scale.set(1, params.legLength, 1);
+  objects.rightLeg.scale.set(1, params.legLength, 1);
+
+  const parts = [
+    objects.head,
+    objects.torso,
+    objects.leftArm,
+    objects.rightArm,
+    objects.leftLeg,
+    objects.rightLeg,
+  ];
+  for (let i = 0; i < parts.length; i++) {
+    const mesh = parts[i];
+    if (mesh.material) {
+      mesh.material.color.set(params.bodyColor);
+      mesh.material.metalness = params.metalness;
+      mesh.material.roughness = params.roughness;
+      mesh.material.wireframe = params.wireframe;
+    }
   }
-  objects.body.position.y =
-    params.radius + 0.2 + Math.abs(Math.sin(time * params.bobSpeed)) * params.bobHeight;
+
+  objects.ground.material.color.set(params.groundColor);
+  objects.keyLight.intensity = params.lightIntensity;
+  ctx.scene.background.set(params.background);
 }
 `;
 }
 
 export interface BlenderTemplateOptions {
   title: string;
-  /** bpy primitive call, e.g. `bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=3, radius=PARAMS["radius"])` */
-  primitiveCall: string;
-  /** RGB triple in 0..1 for the hero object's base color */
+  /** RGB triple in 0..1 for the figure's base color */
   bodyColorRgb: [number, number, number];
 }
 
@@ -154,14 +202,12 @@ import bpy
 import math
 
 PARAMS = {
-    "radius": 1.0,
-    "spin_speed": 0.8,
-    "bob_height": 0.4,
-    "bob_speed": 2.0,
+    "head_size": 1.0,
+    "torso_width": 1.0,
+    "arm_length": 1.0,
+    "leg_length": 1.0,
     "body_color": (${rgb}, 1.0),
     "light_energy": 3.0,
-    "fps": 30,
-    "duration_seconds": 6,
 }
 
 
@@ -173,19 +219,65 @@ def clear_scene():
             bpy.data.meshes.remove(mesh)
 
 
-def build_scene():
-    ${options.primitiveCall}
-    body = bpy.context.active_object
-    body.name = "Body"
-    body.location.z = PARAMS["radius"] + 0.2
-
-    material = bpy.data.materials.new(name="BodyMaterial")
+def make_material(name):
+    material = bpy.data.materials.new(name=name)
     material.use_nodes = True
     bsdf = material.node_tree.nodes["Principled BSDF"]
     bsdf.inputs["Base Color"].default_value = PARAMS["body_color"]
     bsdf.inputs["Metallic"].default_value = 0.35
     bsdf.inputs["Roughness"].default_value = 0.35
-    body.data.materials.append(material)
+    return material
+
+
+def add_box(name, size, location, scale=(1.0, 1.0, 1.0)):
+    bpy.ops.mesh.primitive_cube_add(size=1, location=location)
+    obj = bpy.context.active_object
+    obj.name = name
+    obj.scale = (size[0] * scale[0], size[1] * scale[1], size[2] * scale[2])
+    obj.data.materials.append(make_material(name + "Material"))
+    return obj
+
+
+def build_scene():
+    torso = add_box(
+        "Torso",
+        (0.7, 0.4, 1.0),
+        (0, 0, 1.35),
+        (PARAMS["torso_width"], 1.0, 1.0),
+    )
+
+    bpy.ops.mesh.primitive_uv_sphere_add(
+        radius=0.28 * PARAMS["head_size"],
+        location=(0, 0, 2.1),
+    )
+    head = bpy.context.active_object
+    head.name = "Head"
+    head.data.materials.append(make_material("HeadMaterial"))
+
+    left_arm = add_box(
+        "LeftArm",
+        (0.22, 0.22, 0.85),
+        (-0.55, 0, 1.35),
+        (1.0, 1.0, PARAMS["arm_length"]),
+    )
+    right_arm = add_box(
+        "RightArm",
+        (0.22, 0.22, 0.85),
+        (0.55, 0, 1.35),
+        (1.0, 1.0, PARAMS["arm_length"]),
+    )
+    left_leg = add_box(
+        "LeftLeg",
+        (0.26, 0.26, 0.95),
+        (-0.22, 0, 0.48),
+        (1.0, 1.0, PARAMS["leg_length"]),
+    )
+    right_leg = add_box(
+        "RightLeg",
+        (0.26, 0.26, 0.95),
+        (0.22, 0, 0.48),
+        (1.0, 1.0, PARAMS["leg_length"]),
+    )
 
     bpy.ops.mesh.primitive_circle_add(radius=7, fill_type="NGON")
     ground = bpy.context.active_object
@@ -200,41 +292,29 @@ def build_scene():
         rotation=(math.radians(72), 0, math.radians(36)),
     )
     bpy.context.scene.camera = bpy.context.active_object
-    return body
-
-
-def animate(body):
-    scene = bpy.context.scene
-    fps = PARAMS["fps"]
-    scene.render.fps = fps
-    scene.frame_start = 1
-    scene.frame_end = int(fps * PARAMS["duration_seconds"])
-    for frame in range(scene.frame_start, scene.frame_end + 1, 2):
-        t = (frame - 1) / fps
-        body.rotation_euler.z = t * PARAMS["spin_speed"] * math.pi * 0.5
-        body.location.z = (
-            PARAMS["radius"] + 0.2
-            + abs(math.sin(t * PARAMS["bob_speed"])) * PARAMS["bob_height"]
-        )
-        body.keyframe_insert(data_path="rotation_euler", frame=frame)
-        body.keyframe_insert(data_path="location", frame=frame)
+    return {
+        "head": head,
+        "torso": torso,
+        "left_arm": left_arm,
+        "right_arm": right_arm,
+        "left_leg": left_leg,
+        "right_leg": right_leg,
+        "ground": ground,
+    }
 
 
 clear_scene()
-body = build_scene()
-animate(body)
-print("Zendai scene built: " + body.name)
+parts = build_scene()
+print("Zendai model built: " + ", ".join(parts.keys()))
 `;
 }
 
 export const DEFAULT_SCENE_CODE = buildThreeSceneCode({
-  title: 'Floating icosphere',
-  geometryExpr: 'new THREE.IcosahedronGeometry(params.radius, 3)',
+  title: 'Component figure',
   bodyColor: '#4f8ef7',
 });
 
 export const DEFAULT_BLENDER_CODE = buildBlenderSceneCode({
-  title: 'Floating icosphere',
-  primitiveCall: 'bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=3, radius=PARAMS["radius"])',
+  title: 'Component figure',
   bodyColorRgb: [0.31, 0.56, 0.97],
 });

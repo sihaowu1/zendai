@@ -5,54 +5,10 @@ import {
 
 /**
  * Deterministic offline generator used when no OPENROUTER_API_KEY is set.
- * It maps prompt keywords onto the shared parametric scene templates so the
- * whole pipeline (editor → controls → Remotion → Blender) stays runnable
- * without network access.
+ * It maps prompt keywords onto the shared parametric multi-part figure
+ * template so the whole pipeline (editor → controls → Remotion → Blender)
+ * stays runnable without network access.
  */
-
-interface PrimitiveRule {
-  match: RegExp;
-  three: string;
-  blender: string;
-}
-
-const PRIMITIVES: PrimitiveRule[] = [
-  {
-    match: /\b(cube|box)\b/i,
-    three: 'new THREE.BoxGeometry(params.radius * 1.6, params.radius * 1.6, params.radius * 1.6)',
-    blender: 'bpy.ops.mesh.primitive_cube_add(size=PARAMS["radius"] * 1.6)',
-  },
-  {
-    match: /\btorus\s*knot\b/i,
-    three: 'new THREE.TorusKnotGeometry(params.radius, params.radius * 0.3, 128, 24)',
-    blender:
-      'bpy.ops.mesh.primitive_torus_add(major_radius=PARAMS["radius"], minor_radius=PARAMS["radius"] * 0.3)',
-  },
-  {
-    match: /\b(torus|donut|ring)\b/i,
-    three: 'new THREE.TorusGeometry(params.radius, params.radius * 0.35, 24, 64)',
-    blender:
-      'bpy.ops.mesh.primitive_torus_add(major_radius=PARAMS["radius"], minor_radius=PARAMS["radius"] * 0.35)',
-  },
-  {
-    match: /\bcone\b/i,
-    three: 'new THREE.ConeGeometry(params.radius, params.radius * 2, 48)',
-    blender:
-      'bpy.ops.mesh.primitive_cone_add(radius1=PARAMS["radius"], depth=PARAMS["radius"] * 2)',
-  },
-  {
-    match: /\bcylinder\b/i,
-    three: 'new THREE.CylinderGeometry(params.radius, params.radius, params.radius * 2, 48)',
-    blender:
-      'bpy.ops.mesh.primitive_cylinder_add(radius=PARAMS["radius"], depth=PARAMS["radius"] * 2)',
-  },
-];
-
-const DEFAULT_PRIMITIVE: PrimitiveRule = {
-  match: /sphere/i,
-  three: 'new THREE.IcosahedronGeometry(params.radius, 3)',
-  blender: 'bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=3, radius=PARAMS["radius"])',
-};
 
 interface ColorRule {
   match: RegExp;
@@ -80,14 +36,12 @@ export interface TemplateResult {
 }
 
 export function buildTemplateResult(prompt: string): TemplateResult {
-  const primitive = PRIMITIVES.find((rule) => rule.match.test(prompt)) ?? DEFAULT_PRIMITIVE;
   const color = COLORS.find((rule) => rule.match.test(prompt)) ?? DEFAULT_COLOR;
-  const title = prompt.trim().slice(0, 80) || 'Generated scene';
+  const title = prompt.trim().slice(0, 80) || 'Generated model';
   return {
-    code: buildThreeSceneCode({ title, geometryExpr: primitive.three, bodyColor: color.hex }),
+    code: buildThreeSceneCode({ title, bodyColor: color.hex }),
     blenderCode: buildBlenderSceneCode({
       title,
-      primitiveCall: primitive.blender,
       bodyColorRgb: color.rgb,
     }),
   };

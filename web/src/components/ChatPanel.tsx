@@ -117,7 +117,7 @@ export function ChatPanel({ busy, status, onGenerate, onModify, showTitle = true
         <textarea
           value={input}
           onChange={(event) => setInput(event.target.value)}
-          placeholder="Ask to modify the scene, or generate a new one…"
+          placeholder="Ask to modify the model, or generate a new one…"
           rows={2}
           className={`resize-none font-sans ${FIELD}`}
           disabled={busy !== null}

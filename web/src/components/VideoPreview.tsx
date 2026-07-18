@@ -9,6 +9,8 @@ interface Props {
   job: Mp4JobState | null;
   /** The scene code for whatever's under the playhead. Undefined when the timeline has nothing there — renders a black screen. */
   code: string | undefined;
+  /** Multi-scene co-view when the playhead clip is a merge. Takes precedence over `code` when non-empty. */
+  scenes?: Array<{ id: string; code: string }>;
   tunables: TunableParam[];
   onParamChange: ParamChange;
   modelName: string;
@@ -28,6 +30,7 @@ interface Props {
 export function VideoPreview({
   job,
   code,
+  scenes,
   tunables,
   onParamChange,
   modelName,
@@ -56,13 +59,19 @@ export function VideoPreview({
   const badgeClass =
     'absolute left-2 bottom-2 max-w-[calc(100%-16px)] rounded-md border border-border bg-[rgba(10,10,11,0.85)] px-2.5 py-1 text-[13px] text-text-dim';
 
-  if (!code) {
+  const hasScenes = Boolean(scenes?.length) || Boolean(code);
+  if (!hasScenes) {
     return <div className="h-full w-full bg-black" aria-label="Empty timeline" />;
   }
 
   return (
     <div className="relative h-full w-full">
-      <Viewport code={code} onModelClick={enableClickFloater ? setClickAnchor : undefined} time={time} />
+      <Viewport
+        code={code}
+        scenes={scenes}
+        onModelClick={enableClickFloater ? setClickAnchor : undefined}
+        time={time}
+      />
       {job?.status === 'running' && (
         <div className={badgeClass}>Rendering… {Math.round((job.progress ?? 0) * 100)}%</div>
       )}

@@ -1,36 +1,31 @@
-// a green cube
-// MotionForge scene module — edit freely; tunable params drive the sliders.
+// Component figure
+// Zendai scene module — edit freely; tunable params drive the sliders.
 
 export const PARAMS = {
   /**
    * @tunable
-   * @min 0.2 @max 3 @step 0.05
-   * @label Size
+   * @min 0.5 @max 2 @step 0.05
+   * @label Head size
    */
-  radius: 1,
+  headSize: 1,
   /**
    * @tunable
-   * @min 0 @max 4 @step 0.05
-   * @label Spin speed
+   * @min 0.5 @max 2 @step 0.05
+   * @label Torso width
    */
-  spinSpeed: 0.8,
+  torsoWidth: 1,
   /**
    * @tunable
-   * @min 0 @max 2 @step 0.05
-   * @label Bob height
+   * @min 0.5 @max 2 @step 0.05
+   * @label Arm length
    */
-  bobHeight: 0.4,
+  armLength: 1,
   /**
    * @tunable
-   * @min 0.5 @max 6 @step 0.1
-   * @label Bob speed
+   * @min 0.5 @max 2 @step 0.05
+   * @label Leg length
    */
-  bobSpeed: 2,
-  /**
-   * @tunable
-   * @label Rotate
-   */
-  rotate: true,
+  legLength: 1,
   /**
    * @tunable
    * @label Wireframe
@@ -87,34 +82,88 @@ export function buildScene(ctx) {
   ground.rotation.x = -Math.PI / 2;
   scene.add(ground);
 
-  const body = new THREE.Mesh(
-    new THREE.BoxGeometry(params.radius * 1.6, params.radius * 1.6, params.radius * 1.6),
-    new THREE.MeshStandardMaterial({
-      color: params.bodyColor,
-      metalness: params.metalness,
-      roughness: params.roughness,
-      wireframe: params.wireframe,
-    })
-  );
-  body.position.y = params.radius + 0.2;
-  scene.add(body);
+  const mat = new THREE.MeshStandardMaterial({
+    color: params.bodyColor,
+    metalness: params.metalness,
+    roughness: params.roughness,
+    wireframe: params.wireframe,
+  });
+
+  const root = new THREE.Group();
+  scene.add(root);
+
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.0, 0.4), mat.clone());
+  torso.position.y = 1.35;
+  root.add(torso);
+
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.28, 24, 16), mat.clone());
+  head.position.y = 2.1;
+  root.add(head);
+
+  const leftArm = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.85, 0.22), mat.clone());
+  leftArm.position.set(-0.55, 1.35, 0);
+  root.add(leftArm);
+
+  const rightArm = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.85, 0.22), mat.clone());
+  rightArm.position.set(0.55, 1.35, 0);
+  root.add(rightArm);
+
+  const leftLeg = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.95, 0.26), mat.clone());
+  leftLeg.position.set(-0.22, 0.48, 0);
+  root.add(leftLeg);
+
+  const rightLeg = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.95, 0.26), mat.clone());
+  rightLeg.position.set(0.22, 0.48, 0);
+  root.add(rightLeg);
 
   const keyLight = new THREE.DirectionalLight('#ffffff', params.lightIntensity);
   keyLight.position.set(4, 6, 3);
   scene.add(keyLight);
   scene.add(new THREE.AmbientLight('#8899bb', 0.5));
 
-  return { body: body, ground: ground, keyLight: keyLight };
+  return {
+    root: root,
+    head: head,
+    torso: torso,
+    leftArm: leftArm,
+    rightArm: rightArm,
+    leftLeg: leftLeg,
+    rightLeg: rightLeg,
+    ground: ground,
+    keyLight: keyLight,
+  };
 }
 
 export function updateScene(ctx) {
   const params = ctx.params;
   const objects = ctx.objects;
-  const time = ctx.time;
 
-  if (params.rotate) {
-    objects.body.rotation.y = time * params.spinSpeed * Math.PI * 0.5;
+  objects.head.scale.setScalar(params.headSize);
+  objects.torso.scale.set(params.torsoWidth, 1, 1);
+  objects.leftArm.scale.set(1, params.armLength, 1);
+  objects.rightArm.scale.set(1, params.armLength, 1);
+  objects.leftLeg.scale.set(1, params.legLength, 1);
+  objects.rightLeg.scale.set(1, params.legLength, 1);
+
+  const parts = [
+    objects.head,
+    objects.torso,
+    objects.leftArm,
+    objects.rightArm,
+    objects.leftLeg,
+    objects.rightLeg,
+  ];
+  for (let i = 0; i < parts.length; i++) {
+    const mesh = parts[i];
+    if (mesh.material) {
+      mesh.material.color.set(params.bodyColor);
+      mesh.material.metalness = params.metalness;
+      mesh.material.roughness = params.roughness;
+      mesh.material.wireframe = params.wireframe;
+    }
   }
-  objects.body.position.y =
-    params.radius + 0.2 + Math.abs(Math.sin(time * params.bobSpeed)) * params.bobHeight;
+
+  objects.ground.material.color.set(params.groundColor);
+  objects.keyLight.intensity = params.lightIntensity;
+  ctx.scene.background.set(params.background);
 }

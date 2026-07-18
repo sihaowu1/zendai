@@ -3,13 +3,18 @@ import type { Request } from 'express';
 import type { RenderSettings } from '@motionforge/shared';
 import { requireAuth } from '../auth/middleware';
 import { getGitHubTokenForUser } from '../auth/githubToken';
-import { buildProjectFiles, streamProjectZip } from '../export/codeExport';
+import { streamProjectZip } from '../export/codeExport';
 import {
   commitFiles,
   createRepoAndCommit,
   parseOwnerRepo,
+  pullModelsFromRepo,
   verifyRepoAccess,
 } from '../export/githubExport';
+import {
+  buildGitHubProjectFiles,
+  type GitHubModelInput,
+} from '../export/githubProjectFiles';
 import { startMp4Export } from '../export/mp4Export';
 import { getJob } from '../utils/jobs';
 import { logError } from '../utils/logger';
@@ -32,6 +37,33 @@ function codeBody(req: Request): { code: string; blenderCode?: string; title?: s
   return {
     code,
     blenderCode: typeof req.body?.blenderCode === 'string' ? req.body.blenderCode : undefined,
+    title: typeof req.body?.title === 'string' ? req.body.title : undefined,
+  };
+}
+
+function modelsBody(req: Request): { models: GitHubModelInput[]; title?: string } {
+  const raw = req.body?.models;
+  if (!Array.isArray(raw) || raw.length === 0) {
+    throw new Error('models array is required');
+  }
+  const models: GitHubModelInput[] = raw.map((entry, index) => {
+    if (!entry || typeof entry !== 'object') {
+      throw new Error(`models[${index}] must be an object`);
+    }
+    const id = String((entry as { id?: unknown }).id ?? '').trim() || `model-${index}`;
+    const name = String((entry as { name?: unknown }).name ?? '').trim() || `Model ${index + 1}`;
+    const code = String((entry as { code?: unknown }).code ?? '');
+    if (!code.trim()) {
+      throw new Error(`models[${index}].code is required`);
+    }
+    const blender =
+      typeof (entry as { blenderCode?: unknown }).blenderCode === 'string'
+        ? (entry as { blenderCode: string }).blenderCode
+        : undefined;
+    return { id, name, code, blenderCode: blender };
+  });
+  return {
+    models,
     title: typeof req.body?.title === 'string' ? req.body.title : undefined,
   };
 }
@@ -111,8 +143,8 @@ exportRouter.post('/export/github/create', requireAuth, (req, res) => {
   void withGitHub(req, res, async (token) => {
     const name = String(req.body?.name ?? '').trim();
     if (!name) throw new Error('name is required');
-    const options = codeBody(req);
-    const files = buildProjectFiles(options);
+    const options = modelsBody(req);
+    const files = buildGitHubProjectFiles(options);
     return createRepoAndCommit({
       token,
       name,
@@ -144,8 +176,8 @@ exportRouter.post('/export/github/commit', requireAuth, (req, res) => {
     const owner = String(req.body?.owner ?? '').trim();
     const repo = String(req.body?.repo ?? '').trim();
     if (!owner || !repo) throw new Error('owner and repo are required');
-    const options = codeBody(req);
-    const files = buildProjectFiles(options);
+    const options = modelsBody(req);
+    const files = buildGitHubProjectFiles(options);
     return commitFiles({
       token,
       owner,
@@ -153,6 +185,21 @@ exportRouter.post('/export/github/commit', requireAuth, (req, res) => {
       branch: typeof req.body?.branch === 'string' ? req.body.branch : undefined,
       files,
       message: typeof req.body?.message === 'string' ? req.body.message : undefined,
+    });
+  });
+});
+
+// Pull models/ scripts from a linked repo into the app.
+exportRouter.post('/export/github/pull', requireAuth, (req, res) => {
+  void withGitHub(req, res, async (token) => {
+    const owner = String(req.body?.owner ?? '').trim();
+    const repo = String(req.body?.repo ?? '').trim();
+    if (!owner || !repo) throw new Error('owner and repo are required');
+    return pullModelsFromRepo({
+      token,
+      owner,
+      repo,
+      branch: typeof req.body?.branch === 'string' ? req.body.branch : undefined,
     });
   });
 });

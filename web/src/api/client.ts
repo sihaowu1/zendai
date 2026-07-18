@@ -149,11 +149,21 @@ export interface GitHubCommitResult {
 
 export interface GitHubCreateResult extends GitHubLinkedRepo, GitHubCommitResult {}
 
-export interface GitHubProjectPayload {
+export interface GitHubModelPayload {
+  id: string;
+  name: string;
   code: string;
   blenderCode?: string;
+}
+
+export interface GitHubProjectPayload {
+  models: GitHubModelPayload[];
   title?: string;
   message?: string;
+}
+
+export interface GitHubPullResult {
+  models: GitHubModelPayload[];
 }
 
 export const githubCreateRepo = (body: GitHubProjectPayload & { name: string; private?: boolean }) =>
@@ -165,3 +175,6 @@ export const githubLinkRepo = (fullName: string) =>
 export const githubCommit = (
   body: GitHubProjectPayload & { owner: string; repo: string; branch?: string },
 ) => postJson<GitHubCommitResult>('/api/export/github/commit', body, { requireAuth: true });
+
+export const githubPull = (body: { owner: string; repo: string; branch?: string }) =>
+  postJson<GitHubPullResult>('/api/export/github/pull', body, { requireAuth: true });

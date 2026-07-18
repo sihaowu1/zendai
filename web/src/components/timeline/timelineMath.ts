@@ -16,6 +16,9 @@ export interface TimelineClip {
 /** Minimum length (seconds) shown for a timeline with no clips yet. */
 const EMPTY_TIMELINE_FLOOR = 10;
 
+/** Floor on a clip's duration so a resize drag can never collapse it to zero width. */
+export const MIN_CLIP_DURATION = 0.1;
+
 /**
  * Total timeline length in seconds: the parent's override, else the furthest
  * clip end, else a 10s floor so an empty timeline still has a ruler to

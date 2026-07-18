@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import * as api from '../api/client';
-import type { GitHubLinkedRepo } from '../api/client';
+import type { GitHubLinkedRepo, GitHubModelPayload } from '../api/client';
 
 const STORAGE_KEY = 'motionforge:github-repo';
 
@@ -31,15 +31,21 @@ function writeStoredRepo(repo: GitHubLinkedRepo | null): void {
 
 export type GitHubLinkMode = 'create' | 'existing';
 
+export interface GitHubRepoOptions {
+  /** Called after the linked repo is cleared so the app can reset local models. */
+  onUnlink?: () => void;
+}
+
 /**
- * Client-side linked GitHub repo (localStorage) + create / link / commit actions.
+ * Client-side linked GitHub repo (localStorage) + create / link / commit / pull.
  */
-export function useGitHubRepo() {
+export function useGitHubRepo(options: GitHubRepoOptions = {}) {
   const [linked, setLinked] = useState<GitHubLinkedRepo | null>(() => readStoredRepo());
   const [mode, setMode] = useState<GitHubLinkMode>('create');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastCommitUrl, setLastCommitUrl] = useState<string | null>(null);
+  const [pullStatus, setPullStatus] = useState<string | null>(null);
 
   const persist = useCallback((repo: GitHubLinkedRepo | null) => {
     writeStoredRepo(repo);
@@ -50,8 +56,7 @@ export function useGitHubRepo() {
     async (opts: {
       name: string;
       privateRepo: boolean;
-      code: string;
-      blenderCode: string;
+      models: GitHubModelPayload[];
       title?: string;
       message?: string;
     }) => {
@@ -61,8 +66,7 @@ export function useGitHubRepo() {
         const result = await api.githubCreateRepo({
           name: opts.name,
           private: opts.privateRepo,
-          code: opts.code,
-          blenderCode: opts.blenderCode,
+          models: opts.models,
           title: opts.title,
           message: opts.message,
         });
@@ -107,12 +111,7 @@ export function useGitHubRepo() {
   );
 
   const commit = useCallback(
-    async (opts: {
-      code: string;
-      blenderCode: string;
-      title?: string;
-      message?: string;
-    }) => {
+    async (opts: { models: GitHubModelPayload[]; title?: string; message?: string }) => {
       if (!linked) throw new Error('No repository linked');
       setBusy(true);
       setError(null);
@@ -121,8 +120,7 @@ export function useGitHubRepo() {
           owner: linked.owner,
           repo: linked.repo,
           branch: linked.defaultBranch,
-          code: opts.code,
-          blenderCode: opts.blenderCode,
+          models: opts.models,
           title: opts.title,
           message: opts.message,
         });
@@ -139,11 +137,43 @@ export function useGitHubRepo() {
     [linked],
   );
 
+  const pull = useCallback(
+    async (repoOverride?: GitHubLinkedRepo) => {
+      const target = repoOverride ?? linked;
+      if (!target) throw new Error('No repository linked');
+      setBusy(true);
+      setError(null);
+      setPullStatus(null);
+      try {
+        const result = await api.githubPull({
+          owner: target.owner,
+          repo: target.repo,
+          branch: target.defaultBranch,
+        });
+        setPullStatus(
+          result.models.length === 0
+            ? 'Linked repo has no models yet.'
+            : `Loaded ${result.models.length} model${result.models.length === 1 ? '' : 's'} from GitHub.`,
+        );
+        return result;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        setError(message);
+        throw err;
+      } finally {
+        setBusy(false);
+      }
+    },
+    [linked],
+  );
+
   const unlink = useCallback(() => {
     persist(null);
     setLastCommitUrl(null);
     setError(null);
-  }, [persist]);
+    setPullStatus(null);
+    options.onUnlink?.();
+  }, [persist, options.onUnlink]);
 
   return {
     linked,
@@ -152,9 +182,16 @@ export function useGitHubRepo() {
     busy,
     error,
     lastCommitUrl,
+    pullStatus,
     createRepo,
     linkRepo,
     commit,
+    pull,
     unlink,
   };
+}
+
+/** Read the linked repo without React (e.g. one-shot startup checks). */
+export function readLinkedGitHubRepo(): GitHubLinkedRepo | null {
+  return readStoredRepo();
 }

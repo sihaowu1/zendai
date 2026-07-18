@@ -7,12 +7,7 @@ export default function Footer() {
       <div className="mx-auto max-w-[1400px] px-6 lg:px-10 py-12">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-white text-inkwell">
-              <Logo size={18} />
-            </div>
-            <span className="font-heading text-lg font-bold tracking-tight text-white">
-              Zendai
-            </span>
+            <Logo size={120} />
           </div>
 
           <nav className="flex flex-wrap items-center gap-x-8 gap-y-3">
