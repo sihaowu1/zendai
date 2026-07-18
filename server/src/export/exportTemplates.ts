@@ -1,7 +1,6 @@
 /**
- * Static file templates for the code-export ZIP: a standalone Three.js viewer
- * (index.html + viewer.js) that runs the exported scene.module.js, plus a
- * README explaining how to use each exported file.
+ * Static file templates for code export: standalone Three.js viewer,
+ * React SceneCanvas host, and format-specific READMEs.
  */
 
 export function viewerHtml(title: string): string {
@@ -79,10 +78,114 @@ renderer.setAnimationLoop((now) => {
 `;
 }
 
-export function exportReadme(title: string): string {
+/** Drop-in React + Three.js host for the exported scene module. */
+export function reactSceneCanvasTsx(): string {
+  return `import { useEffect, useRef, type CSSProperties } from 'react';
+import * as THREE from 'three';
+import * as sceneModule from './scene.module.js';
+
+export interface SceneCanvasProps {
+  className?: string;
+  style?: CSSProperties;
+}
+
+/**
+ * Renders a Zendai scene.module.js inside a React app.
+ * Install peers: \`npm i three react react-dom\`
+ *
+ * Optional OrbitControls (not included):
+ *   import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+ */
+export function SceneCanvas({ className, style }: SceneCanvasProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 500);
+    const spec = sceneModule.CAMERA ?? {};
+    camera.position.set(...(spec.position ?? [4, 2.6, 5.5]));
+    if (spec.fov) camera.fov = spec.fov;
+    if (spec.lookAt) camera.lookAt(...spec.lookAt);
+    camera.updateProjectionMatrix();
+
+    const objects = sceneModule.buildScene({
+      THREE,
+      scene,
+      params: sceneModule.PARAMS,
+    });
+
+    const resize = () => {
+      const parent = canvas.parentElement;
+      const width = parent?.clientWidth || window.innerWidth;
+      const height = parent?.clientHeight || window.innerHeight;
+      renderer.setSize(width, height, false);
+      camera.aspect = width / Math.max(height, 1);
+      camera.updateProjectionMatrix();
+    };
+    resize();
+    window.addEventListener('resize', resize);
+
+    const start = performance.now();
+    let frameId = 0;
+    const tick = (now: number) => {
+      sceneModule.updateScene({
+        THREE,
+        scene,
+        objects,
+        params: sceneModule.PARAMS,
+        time: (now - start) / 1000,
+      });
+      renderer.render(scene, camera);
+      frameId = requestAnimationFrame(tick);
+    };
+    frameId = requestAnimationFrame(tick);
+
+    return () => {
+      cancelAnimationFrame(frameId);
+      window.removeEventListener('resize', resize);
+      renderer.dispose();
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className={className}
+      style={{ display: 'block', width: '100%', height: '100%', ...style }}
+    />
+  );
+}
+`;
+}
+
+export function reactPackageJson(): string {
+  return `${JSON.stringify(
+    {
+      name: 'zendai-scene',
+      private: true,
+      peerDependencies: {
+        react: '>=18',
+        'react-dom': '>=18',
+        three: '>=0.160.0',
+      },
+    },
+    null,
+    2,
+  )}\n`;
+}
+
+export function standaloneReadme(title: string): string {
   return `# ${title}
 
 Exported from Zendai — a code-based 3D scene, fully editable.
+
+## Format: Standalone HTML
 
 ## Files
 
@@ -91,8 +194,6 @@ Exported from Zendai — a code-based 3D scene, fully editable.
   animates it as a pure function of time.
 - \`index.html\` + \`viewer.js\` — a standalone WebGL viewer for the module
   (Three.js is loaded from a CDN via an import map).
-- \`scene.blender.py\` — the same scene as a Blender Python script, with
-  keyframed animation.
 
 ## Run the web viewer
 
@@ -106,18 +207,89 @@ npx serve .
 Expected output: the animated 3D scene rendering in your browser with orbit
 controls (drag to rotate, scroll to zoom).
 
-## Run the Blender script
+## Tweak it
 
-Open Blender → Scripting workspace → open \`scene.blender.py\` → Run Script.
+Edit any value in \`PARAMS\` and reload — the code is the project.
+`;
+}
 
-Expected output: the scene is rebuilt in Blender with materials, lights, a
-camera, and keyframed animation; press Space to play it.
+export function reactReadme(title: string): string {
+  return `# ${title}
+
+Exported from Zendai — a code-based 3D scene as a React component.
+
+## Format: React component
+
+## Files
+
+- \`scene.module.js\` — the parametric Three.js scene module (\`PARAMS\`,
+  \`buildScene\`, \`updateScene\`, optional \`CAMERA\`).
+- \`SceneCanvas.tsx\` — drop-in React host that mounts the module on a canvas.
+- \`package.json\` — peer dependency hints (\`react\`, \`react-dom\`, \`three\`).
+
+## Install
+
+\`\`\`bash
+npm i three react react-dom
+\`\`\`
+
+## Usage
+
+\`\`\`tsx
+import { SceneCanvas } from './SceneCanvas';
+
+export function App() {
+  return (
+    <div style={{ width: '100vw', height: '100vh' }}>
+      <SceneCanvas />
+    </div>
+  );
+}
+\`\`\`
+
+OrbitControls are not included by default; add them from
+\`three/examples/jsm/controls/OrbitControls.js\` if you want orbit interaction.
 
 ## Tweak it
 
-Edit any value in \`PARAMS\` (in either file) and reload — the code is the
-project.
+Edit any value in \`PARAMS\` and reload — the code is the project.
 `;
+}
+
+export function moduleReadme(title: string): string {
+  return `# ${title}
+
+Exported from Zendai — raw scene module for a custom host.
+
+## Format: ES module only
+
+## Files
+
+- \`scene.module.js\` — the parametric Three.js scene module. Hosts must inject
+  \`THREE\`; the module must not \`import\` / \`require\` / \`fetch\`.
+
+## Contract
+
+\`\`\`js
+// Host responsibilities:
+import * as THREE from 'three';
+import * as scene from './scene.module.js';
+
+const objects = scene.buildScene({ THREE, scene: threeScene, params: scene.PARAMS });
+scene.updateScene({ THREE, scene: threeScene, objects, params: scene.PARAMS, time });
+\`\`\`
+
+Exports: \`PARAMS\`, optional \`CAMERA\`, \`buildScene\`, \`updateScene\`.
+
+## Tweak it
+
+Edit any value in \`PARAMS\` and reload — the code is the project.
+`;
+}
+
+/** @deprecated Prefer standaloneReadme / reactReadme / moduleReadme. */
+export function exportReadme(title: string): string {
+  return standaloneReadme(title);
 }
 
 function escapeHtml(text: string): string {

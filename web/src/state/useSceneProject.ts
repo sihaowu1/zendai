@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import {
   DEFAULT_ASPECT_RATIO,
-  DEFAULT_BLENDER_CODE,
   DEFAULT_SCENE_CODE,
   deleteLayer as deleteLayerInCode,
   parseTunables,
@@ -20,9 +19,9 @@ import { useTimelinePlayback } from '../components/timeline/useTimelinePlayback'
  * All editor state in one hook.
  *
  * The state holds an array of generated models (per SPEC.md Issue 2). One is
- * "active" at any time; `code`/`blenderCode`/`tunables` are derived from it,
- * and edits (setCode/setBlenderCode/setParam/modify) update the active model
- * in place. This is the single source of truth for both the Model screen's
+ * "active" at any time; `code`/`tunables` are derived from it, and edits
+ * (setCode/setParam/modify) update the active model in place. This is the
+ * single source of truth for both the Model screen's
  * viewport/editor and the Video screen's Materials pane.
  *
  * The state also holds an array of timeline clips. Every completed MP4 render
@@ -49,12 +48,11 @@ export interface SceneModel {
   id: string;
   name: string;
   code: string;
-  blenderCode: string;
   createdAt: number;
   /**
    * When set, this row is a co-view merge of other models. Children stay
    * independent (not constrained); the viewport places them side-by-side on
-   * the same ground plane. `code`/`blenderCode` mirror the first child so
+   * the same ground plane. `code` mirrors the first child so
    * export/modify/tunables still have a primary target.
    */
   childIds?: string[];
@@ -78,7 +76,6 @@ function makeDefaultModel(): SceneModel {
     id: DEFAULT_MODEL_ID,
     name: 'Default model',
     code: DEFAULT_SCENE_CODE,
-    blenderCode: DEFAULT_BLENDER_CODE,
     createdAt: Date.now(),
   };
 }
@@ -146,7 +143,6 @@ export function useSceneProject() {
   // `server/src/agents/aspectRatioComposition.ts` for the (currently unused)
   // code that would pass this to the camera-composition skill.
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>(DEFAULT_ASPECT_RATIO);
-  const [blenderStatus, setBlenderStatus] = useState<api.BlenderStatus | null>(null);
   const pollRef = useRef<number | null>(null);
 
   // The active model backs the editor/viewport. It always resolves to a real
@@ -156,7 +152,6 @@ export function useSceneProject() {
     [models, activeModelId],
   );
   const code = activeModel.code;
-  const blenderCode = activeModel.blenderCode;
 
   /** Scene modules the Model-screen viewport should co-render (one entry, or several for a merge). */
   const viewportScenes = useMemo(
@@ -221,26 +216,17 @@ export function useSceneProject() {
   // Patch just the active model in the array. Accepts either a value or an
   // updater function, matching React's `setState` shape so external callers
   // can use `(current) => …` when they only have the current-active value.
-  const updateActiveField = useCallback(
-    <K extends 'code' | 'blenderCode'>(field: K, next: SetStateAction<string>) => {
+  const setCode: Dispatch<SetStateAction<string>> = useCallback(
+    (next) => {
       setModels((current) =>
         current.map((m) => {
           if (m.id !== activeModelId) return m;
-          const value = typeof next === 'function' ? (next as (prev: string) => string)(m[field]) : next;
-          return { ...m, [field]: value };
+          const value = typeof next === 'function' ? (next as (prev: string) => string)(m.code) : next;
+          return { ...m, code: value };
         }),
       );
     },
     [activeModelId],
-  );
-
-  const setCode: Dispatch<SetStateAction<string>> = useCallback(
-    (next) => updateActiveField('code', next),
-    [updateActiveField],
-  );
-  const setBlenderCode: Dispatch<SetStateAction<string>> = useCallback(
-    (next) => updateActiveField('blenderCode', next),
-    [updateActiveField],
   );
 
   const generate = useCallback(
@@ -254,7 +240,6 @@ export function useSceneProject() {
             id,
             name: nameFromPrompt(prompt, current.length + 1),
             code: result.code,
-            blenderCode: result.blenderCode ?? DEFAULT_BLENDER_CODE,
             createdAt: Date.now(),
           },
         ]);
@@ -274,21 +259,20 @@ export function useSceneProject() {
   const modify = useCallback(
     (prompt: string, image?: ReferenceImage) =>
       run('Modifying model…', async () => {
-        const result = await api.modify(prompt, code, blenderCode, image);
+        const result = await api.modify(prompt, code, image);
         setModels((current) =>
           current.map((m) =>
             m.id === activeModelId
               ? {
                   ...m,
                   code: result.code,
-                  blenderCode: result.blenderCode ?? m.blenderCode,
                 }
               : m,
           ),
         );
         setStatus({ kind: 'info', text: 'Model modified by the AI agent.' });
       }),
-    [run, code, blenderCode, activeModelId],
+    [run, code, activeModelId],
   );
 
   /**
@@ -302,14 +286,13 @@ export function useSceneProject() {
         if (!target) {
           throw new Error('No model available to animate. Generate a model on the Model screen first.');
         }
-        const result = await api.animate(prompt, target.code, target.blenderCode);
+        const result = await api.animate(prompt, target.code);
         setModels((current) =>
           current.map((m) =>
             m.id === target.id
               ? {
                   ...m,
                   code: result.code,
-                  blenderCode: result.blenderCode ?? m.blenderCode,
                 }
               : m,
           ),
@@ -453,7 +436,6 @@ export function useSceneProject() {
         id,
         name: name.length > 48 ? `${name.slice(0, 48)}…` : name,
         code: primary.code,
-        blenderCode: primary.blenderCode,
         createdAt: Date.now(),
         childIds: leafIds,
       },
@@ -533,13 +515,14 @@ export function useSceneProject() {
   }, []);
 
   const exportCode = useCallback(
-    () =>
+    (format: api.CodeExportFormat = 'standalone') =>
       run('Exporting code…', async () => {
-        const blob = await api.exportCodeZip(code, blenderCode);
-        downloadBlob(blob, 'zendai-scene.zip');
-        setStatus({ kind: 'info', text: 'Project exported as zendai-scene.zip.' });
+        const blob = await api.exportCodeZip(code, format);
+        const fileName = `zendai-scene-${format}.zip`;
+        downloadBlob(blob, fileName);
+        setStatus({ kind: 'info', text: `Project exported as ${fileName}.` });
       }),
-    [run, code, blenderCode],
+    [run, code],
   );
 
   const exportMp4 = useCallback(
@@ -594,24 +577,6 @@ export function useSceneProject() {
     [run, code, activeModelId, activeModel.name],
   );
 
-  const syncBlender = useCallback(
-    () =>
-      run('Sending scene to Blender…', async () => {
-        const result = await api.blenderSync(blenderCode);
-        setStatus({ kind: 'info', text: `Blender: ${result.output || 'scene updated'}` });
-      }),
-    [run, blenderCode],
-  );
-
-  const runBlenderAgent = useCallback(
-    (prompt: string) =>
-      run('Blender agent working…', async () => {
-        const result = await api.blenderAgent(prompt);
-        setStatus({ kind: 'info', text: `Blender agent: ${result.finalText.slice(0, 300)}` });
-      }),
-    [run],
-  );
-
   /** Clear models/clips and reseed the Default model (unlink / no linked repo). */
   const resetToDefault = useCallback(() => {
     const seed = makeDefaultModel();
@@ -625,7 +590,7 @@ export function useSceneProject() {
 
   /** Replace local models with scripts pulled from a linked GitHub repo. Clears timeline clips. */
   const replaceFromRemote = useCallback(
-    (remote: Array<{ id: string; name: string; code: string; blenderCode?: string }>) => {
+    (remote: Array<{ id: string; name: string; code: string }>) => {
       if (remote.length === 0) {
         resetToDefault();
         setStatus({
@@ -638,7 +603,6 @@ export function useSceneProject() {
         id: m.id,
         name: m.name,
         code: m.code,
-        blenderCode: m.blenderCode ?? DEFAULT_BLENDER_CODE,
         createdAt: Date.now(),
       }));
       setModels(next);
@@ -656,8 +620,6 @@ export function useSceneProject() {
   return {
     code,
     setCode,
-    blenderCode,
-    setBlenderCode,
     tunables,
     setParam,
     busy,
@@ -694,8 +656,6 @@ export function useSceneProject() {
     setAspectRatio,
     exportCode,
     exportMp4,
-    syncBlender,
-    runBlenderAgent,
     replaceFromRemote,
     resetToDefault,
   };

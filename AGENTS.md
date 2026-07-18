@@ -5,9 +5,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## What this is
 
 Zendai: an AI-powered, **code-based** 3D generation and video-editing system. A prompt
-goes to an AI agent that writes a Three.js/WebGL scene module and a matching Blender Python
-script — never an image or video-generation model — and both stay live-editable, tunable
-through sliders/switches, exportable as code, and renderable to MP4 through Remotion.
+goes to an AI agent that writes a Three.js/WebGL scene module — never an image or
+video-generation model — that stays live-editable, tunable through sliders/switches,
+exportable as code, and renderable to MP4 through Remotion.
 
 ## Commands
 
@@ -27,7 +27,7 @@ There is no lint script configured.
 
 ## Architecture
 
-npm workspaces: `shared`, `server`, `web`, `remotion` (plus non-workspace `blender/`).
+npm workspaces: `shared`, `server`, `web`, `remotion`.
 
 ```
 web (editor + controls + viewport)
@@ -38,7 +38,6 @@ server/routes  ─▶  server/agents (orchestrator)
    │                    ├─▶ server/ai (Claude + scene-generation / img2threejs / camera-composition /
    │                    │        threejs-animation / remotion-mp4 skills)
    │                    │        │ offline fallback ▶ server/agents/templateFallback (shared/sceneTemplate)
-   │                    ├─▶ server/mcp (Blender MCP client) ─▶ blender/mcp/server.py ─▶ blender/addon.py (in Blender)
    │                    └─▶ server/remotion/renderer ─▶ remotion/ (bundle + render) ─▶ renders/*.mp4
    ▼
 server/export (code ZIP via shared templates, MP4 job polling)
@@ -53,32 +52,20 @@ server/export (code ZIP via shared templates, MP4 job polling)
   - `config/` merges `config/default.config.json` with `.env` overrides.
   - `ai/` — Anthropic client, skill loader, fenced-code-block extraction from model output.
   - `agents/` — `orchestrator.ts` (entry point for generate/modify), `sceneAgent.ts`,
-    `blenderAgent.ts`, `renderAgent.ts`, `templateFallback.ts` (offline, no API key needed).
-  - `mcp/` — `blenderMcp.ts` spawns `blender/mcp/server.py` as a child process and talks to it
-    over stdio via `@modelcontextprotocol/sdk`; `toolBridge.ts` bridges MCP tools to Anthropic's
-    tool-use schema.
+    `renderAgent.ts`, `templateFallback.ts` (offline, no API key needed).
   - `remotion/` — bundles and renders the Remotion project to MP4.
   - `export/` — code (ZIP) and MP4 export flows; reuses `shared` templates, doesn't duplicate them.
-  - `routes/` — `/api/generate` + `/api/modify`, `/api/blender/*`, `/api/export/*`.
+  - `routes/` — `/api/generate` + `/api/modify`, `/api/export/*`.
 - **`web/`** — front end: code editor + element controls only, no other UI.
-  - `app/` — prompt bar, top-level layout, status bar.
-  - `editor/` — CodeMirror 6 editor with scene/Blender tabs.
+  - `components/app/` — studio router shell, prompt bar, status bar.
   - `controls/` — sliders/switches/color pickers generated from a module's `PARAMS` block.
   - `viewport/` — live Three.js/WebGL preview runtime (`SceneRuntime.ts`).
-  - `blender/` — Blender MCP status + sync/agent panel.
-  - `export/` — export-as-code and render-to-MP4 panel.
-  - `state/useSceneProject.ts` — the single client-side state hook; currently tracks one
-    active project (see `SPEC.md` for a planned redesign that extends this to a list).
+  - `state/useSceneProject.ts` — the single client-side state hook; tracks a list of models
+    (see `SPEC.md` for the v2 redesign).
   - `api/client.ts` — typed fetch client for the server API.
 - **`remotion/`** — renders a generated scene module to MP4. `generated/scene-module.js` is
   overwritten per render by the server; `GeneratedScene.tsx` drives `buildScene`/`updateScene`
   inside `<ThreeCanvas>` (`@remotion/three`).
-- **`blender/`** — `addon.py` is a Blender add-on providing a TCP bridge server that runs
-  *inside* an open Blender instance and executes `bpy` code on Blender's main thread;
-  `mcp/server.py` is a stdio MCP server that exposes tools (`execute_blender_code`,
-  `get_scene_info`, `render_frame`) and forwards them over TCP to `addon.py`. See
-  `blender/README.md` for setup. Two server-side modes use this: one-shot sync
-  (`POST /api/blender/sync`) and an iterative agent loop (`POST /api/blender/agent`).
 
 ## The scene-module contract
 
@@ -98,25 +85,25 @@ Every generated model follows the Three.js modelling contract (see
   single parser/patcher for this — controls patch the PARAMS block directly rather than
   re-serializing the whole module.
 
-Claude Skills that drive this: `skills/scene-generation/SKILL.md` (scene + Blender script
-generation/modification), `skills/img2threejs/SKILL.md` (reconstructs a model from an attached
-reference image via component decomposition, used instead of `scene-generation` when an image is
-present), `skills/camera-composition/SKILL.md` (translates a prompt's implied shot type and
-spatial layout into concrete object placement and `CAMERA` position/lookAt/fov — loaded alongside
-`scene-generation`/`img2threejs` in `sceneAgent.ts` and `blenderAgent.ts`), `skills/threejs-animation/SKILL.md`
+Claude Skills that drive this: `skills/scene-generation/SKILL.md` (scene generation/modification),
+`skills/img2threejs/SKILL.md` (reconstructs a model from an attached reference image via component
+decomposition, used instead of `scene-generation` when an image is present),
+`skills/camera-composition/SKILL.md` (translates a prompt's implied shot type and spatial layout
+into concrete object placement and `CAMERA` position/lookAt/fov — loaded alongside
+`scene-generation`/`img2threejs` in `sceneAgent.ts`), `skills/threejs-animation/SKILL.md`
 (adds one-shot timeline animations to an existing model), and `skills/remotion-mp4/SKILL.md`
 (fps/duration/resolution planning for a render, invoked before an MP4 export).
 
 ## Config
 
-`config/default.config.json` holds defaults (port, AI model, Blender MCP command/ports,
-Remotion fps/resolution); `.env` values override them by the same keys documented in
-`.env.example`. Without `OPENROUTER_API_KEY`/`ANTHROPIC_API_KEY` set, the server still runs
-end-to-end via the deterministic offline generator in `server/src/agents/templateFallback.ts`.
+`config/default.config.json` holds defaults (port, AI model, Remotion fps/resolution);
+`.env` values override them by the same keys documented in `.env.example`. Without
+`OPENROUTER_API_KEY`/`ANTHROPIC_API_KEY` set, the server still runs end-to-end via the
+deterministic offline generator in `server/src/agents/templateFallback.ts`.
 
 ## In-progress redesign
 
 `SPEC.md` at the repo root is the source-of-truth spec for an in-progress v2 redesign (router,
-two-screen UI split, GitHub export, Auth0 auth) — check it before touching `web/src/app/App.tsx`,
-`web/src/state/useSceneProject.ts`, or `server/src/routes/export.ts`, since those are the files
-the redesign will change first.
+two-screen UI split, GitHub export, Auth0 auth) — check it before touching
+`web/src/components/app/App.tsx`, `web/src/state/useSceneProject.ts`, or
+`server/src/routes/export.ts`, since those are the files the redesign will change first.

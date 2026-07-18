@@ -14,14 +14,12 @@ const JS_LANGS = new Set(['js', 'javascript']);
 
 export interface SceneCode {
   code: string;
-  blenderCode: string;
 }
 
 export async function animateScene(
   client: Anthropic,
   prompt: string,
   code: string,
-  blenderCode: string,
 ): Promise<SceneCode> {
   const messages: Anthropic.MessageParam[] = [
     {
@@ -37,13 +35,12 @@ export async function animateScene(
         'Return the complete updated ```javascript block.',
     },
   ];
-  return completeWithRetry(client, messages, blenderCode);
+  return completeWithRetry(client, messages);
 }
 
 async function completeWithRetry(
   client: Anthropic,
   messages: Anthropic.MessageParam[],
-  previousBlenderCode: string,
 ): Promise<SceneCode> {
   let errors: string[] = [];
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -66,7 +63,7 @@ async function completeWithRetry(
     const js = blocks.find((block) => JS_LANGS.has(block.lang));
     errors = js ? validateSceneModule(js.code) : ['the response did not include a ```javascript block'];
     if (js && errors.length === 0) {
-      return { code: js.code, blenderCode: previousBlenderCode };
+      return { code: js.code };
     }
     messages.push({ role: 'assistant', content: response.content as Anthropic.MessageParam['content'] });
     messages.push({

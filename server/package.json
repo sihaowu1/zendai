@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.110.0",
-    "@modelcontextprotocol/sdk": "^1.11.0",
     "@motionforge/shared": "*",
     "@octokit/rest": "^22.0.1",
     "@remotion/bundler": "4.0.236",

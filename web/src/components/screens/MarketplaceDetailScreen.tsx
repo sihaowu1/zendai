@@ -9,7 +9,6 @@ export function MarketplaceDetailScreen() {
   const [item, setItem] = useState<MarketplaceItemDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [tab, setTab] = useState<'threejs' | 'blender'>('threejs');
 
   useEffect(() => {
     if (!id) return;
@@ -43,34 +42,11 @@ export function MarketplaceDetailScreen() {
         </div>
       </div>
       <div className="flex flex-col">
-        <div className="flex gap-0">
-          <button
-            type="button"
-            className={
-              tab === 'threejs'
-                ? 'border border-border bg-bg-raised px-4 py-2 text-[14px] font-semibold text-text'
-                : 'border border-border bg-bg-panel px-4 py-2 text-[14px] text-text-dim'
-            }
-            onClick={() => setTab('threejs')}
-          >
-            Three.js
-          </button>
-          {item.blenderCode && (
-            <button
-              type="button"
-              className={
-                tab === 'blender'
-                  ? 'border border-border border-b-0 bg-bg-raised px-4 py-2 text-[14px] font-semibold text-text'
-                  : 'border border-border bg-bg-panel px-4 py-2 text-[14px] text-text-dim'
-              }
-              onClick={() => setTab('blender')}
-            >
-              Blender
-            </button>
-          )}
+        <div className="border border-border border-b-0 bg-bg-raised px-4 py-2 text-[14px] font-semibold text-text">
+          Three.js
         </div>
         <pre className="m-0 max-h-[400px] overflow-auto rounded-b-lg border border-border bg-bg-raised p-4 text-[13px] leading-relaxed">
-          {tab === 'threejs' ? item.code : item.blenderCode}
+          {item.code}
         </pre>
       </div>
     </main>

@@ -82,8 +82,6 @@ export default function Hero() {
             </div>
 
             <div className="mt-10 flex items-center gap-6 font-mono-label text-slate-400">
-              <span>Blender</span>
-              <span className="h-3 w-px bg-white/20" />
               <span>Three.js</span>
               <span className="h-3 w-px bg-white/20" />
               <span>WebGL</span>

@@ -1,27 +1,24 @@
 # Zendai
 
 AI-powered, **code-based** 3D generation and video-editing system. A prompt
-goes to an AI agent that writes a Three.js/WebGL scene module and a matching
-Blender Python script — never an image or a video-generation model — and both
-stay live-editable, tunable through sliders/switches, exportable as code, and
-renderable to MP4 through Remotion.
+goes to an AI agent that writes a Three.js/WebGL scene module — never an image
+or a video-generation model — that stays live-editable, tunable through
+sliders/switches, exportable as code, and renderable to MP4 through Remotion.
 
 No AI image/video generation service is used anywhere in this pipeline. Every
-visual is produced by code that runs in a real WebGL/Blender renderer.
+visual is produced by code that runs in a real WebGL renderer.
 
 ## What it does
 
 1. You type a prompt ("a spinning gold torus knot") into the code editor's
    prompt bar.
 2. An AI agent (Claude, using the `scene-generation` skill) or, offline, a
-   deterministic template generator writes a **Three.js scene module** and a
-   **Blender Python script** from the same design.
+   deterministic template generator writes a **Three.js scene module**.
 3. The scene module renders live in a WebGL viewport in the browser. Its
    `PARAMS` block is parsed into sliders, switches, and color pickers that
    patch the code directly when moved.
-4. You can edit the code by hand (CodeMirror), ask the AI to modify it, sync
-   it into a live Blender instance over MCP, export the whole project as code,
-   or render it to an MP4 with Remotion.
+4. You can edit the code by hand, ask the AI to modify it, export the whole
+   project as code, or render it to an MP4 with Remotion.
 
 ## Repository structure
 
@@ -30,26 +27,21 @@ hack-the-6ix/
 ├── shared/            AI/browser/server-agnostic core: types, PARAMS↔slider parsing,
 │                       scene-module validation, deterministic scene-code templates
 ├── skills/             Claude Skills (also valid as Claude Code skills)
-│   ├── scene-generation/   generates/edits the Three.js + Blender code pair
+│   ├── scene-generation/   generates/edits the Three.js scene module
 │   └── remotion-mp4/       plans fps/duration/resolution for an MP4 render
-├── server/            Express API: AI agents, Blender MCP client, Remotion renderer, export
+├── server/            Express API: AI agents, Remotion renderer, export
 │   └── src/
 │       ├── config/         merges config/default.config.json with env overrides
 │       ├── ai/              Anthropic client, skill loader, fenced-code-block extraction
-│       ├── agents/          orchestrator, scene agent, Blender agent, render agent, offline fallback
-│       ├── mcp/             Blender MCP stdio client + Anthropic tool-schema bridge
+│       ├── agents/          orchestrator, scene agent, render agent, offline fallback
 │       ├── remotion/        bundles + renders the Remotion project to MP4
 │       ├── export/          code (ZIP) and MP4 export flows
-│       ├── routes/          /api/generate, /api/modify, /api/blender/*, /api/export/*
+│       ├── routes/          /api/generate, /api/modify, /api/export/*
 │       └── utils/           filesystem, background job tracker, logger
-├── web/                Front end: code editor + element controls only (no other UI)
+├── web/                Front end: studio UI (model / video / export screens)
 │   └── src/
-│       ├── app/              prompt bar, top-level layout, status bar
-│       ├── editor/           CodeMirror 6 editor + scene/Blender tabs
-│       ├── controls/         sliders / switches / color pickers for tunables
+│       ├── components/       screens, chat, controls, timeline, export UI
 │       ├── viewport/         live Three.js/WebGL preview runtime
-│       ├── blender/          Blender MCP status + sync/agent panel
-│       ├── export/           export-as-code and render-to-MP4 panel
 │       ├── state/            useSceneProject: the single client-side state hook
 │       └── api/               typed fetch client for the server API
 ├── remotion/           Renders a generated scene module to MP4
@@ -57,10 +49,7 @@ hack-the-6ix/
 │       ├── index.ts, Root.tsx    registers the GeneratedScene composition
 │       ├── GeneratedScene.tsx     drives buildScene/updateScene inside <ThreeCanvas>
 │       └── generated/             scene-module.js — overwritten per render by the server
-├── blender/            Blender MCP integration
-│   ├── addon.py            Blender add-on: TCP bridge server (runs inside Blender)
-│   └── mcp/server.py       stdio MCP server: exposes tools, forwards to the bridge
-├── config/             default.config.json — ports, AI model, Blender/Remotion defaults
+├── config/             default.config.json — ports, AI model, Remotion defaults
 └── tasks/               build-plan notes (not part of the running app)
 ```
 
@@ -74,7 +63,6 @@ server/routes  ─▶  server/agents (orchestrator)
    │                    │
    │                    ├─▶ server/ai (Claude + scene-generation / remotion-mp4 skills)
    │                    │        │ offline fallback ▶ server/agents/templateFallback (shared/sceneTemplate)
-   │                    ├─▶ server/mcp (Blender MCP client) ─▶ blender/mcp/server.py ─▶ blender/addon.py (in Blender)
    │                    └─▶ server/remotion/renderer ─▶ remotion/ (bundle + render) ─▶ renders/*.mp4
    ▼
 server/export (code ZIP via shared templates, MP4 job polling)
@@ -86,8 +74,7 @@ validator are defined exactly once.
 
 ## Install
 
-Requires Node.js 20+, npm, and Python 3.10+ (only for the optional Blender
-bridge).
+Requires Node.js 20+ and npm.
 
 ```bash
 npm install
@@ -102,14 +89,13 @@ Edit `.env`:
 OPENROUTER_API_KEY=sk-or-v1-...   # omit to run fully offline (template fallback)
 # PORT=5174
 # ANTHROPIC_MODEL=anthropic/claude-opus-4-8
-# BLENDER_MCP_ENABLED=true     # only if you're connecting a real Blender instance
 # REMOTION_GL=angle
 ```
 
-Defaults (port, AI model, Remotion fps/resolution, Blender MCP command/ports)
-live in `config/default.config.json`; the `.env` variables above override
-them. Without `ANTHROPIC_API_KEY` the server still runs end-to-end using the
-deterministic offline generator in `server/src/agents/templateFallback.ts`.
+Defaults (port, AI model, Remotion fps/resolution) live in
+`config/default.config.json`; the `.env` variables above override them. Without
+`ANTHROPIC_API_KEY` the server still runs end-to-end using the deterministic
+offline generator in `server/src/agents/templateFallback.ts`.
 
 ## Run
 
@@ -129,50 +115,20 @@ npm run remotion:studio   # preview the Remotion composition standalone
 npm run typecheck         # typecheck every workspace
 ```
 
-## How the AI model connects to Blender through MCP
-
-`server/src/mcp/blenderMcp.ts` spawns `blender/mcp/server.py` as a child
-process and talks to it over stdio using the official MCP TypeScript SDK
-(`@modelcontextprotocol/sdk`). That Python process is a standalone MCP server
-exposing three tools (`execute_blender_code`, `get_scene_info`,
-`render_frame`); it forwards each call over a local TCP socket to
-`blender/addon.py`, a Blender add-on that runs inside a real, open Blender
-instance and executes `bpy` code on Blender's main thread. See
-`blender/README.md` for setup. Two agent modes use this:
-
-- **One-shot sync** (`POST /api/blender/sync`) — runs the editor's current
-  Blender script once.
-- **Blender agent** (`POST /api/blender/agent`,
-  `server/src/agents/blenderAgent.ts`) — Claude runs an MCP tool-use loop:
-  inspect the scene, execute focused `bpy` code, read the result, fix errors,
-  repeat, then summarize.
-
 ## How 3D code generation works
 
 `skills/scene-generation/SKILL.md` is both a Claude Skill and this project's
 system prompt. It defines a strict contract: a self-contained Three.js module
 exporting `PARAMS`, optional `CAMERA`, `buildScene(ctx)`, and
 `updateScene(ctx)` (a pure function of `time`, no `Math.random()`/`Date`, so
-Remotion can render frames independently and out of order), plus a matching
-Blender Python script. `server/src/agents/sceneAgent.ts` sends the prompt to
-Claude with that skill as the system prompt, extracts the two fenced code
-blocks, validates the JS module against the contract
-(`shared/src/validate.ts`), and retries once with the validator's errors if it
-fails. Without an API key, `server/src/agents/templateFallback.ts` maps prompt
-keywords onto the same contract using `shared/src/sceneTemplate.ts` so the app
-never blocks on AI access.
-
-## How the code editor works
-
-`web/src/editor/CodeEditor.tsx` wraps CodeMirror 6 as a controlled component
-(`EditorTabs.tsx` switches between the Three.js and Blender scripts). Typing
-flows out through `onChange`; AI generations, AI modifications, and slider
-drags all flow back in as full-document replacements dispatched into the
-CodeMirror document. The same code string powers the live WebGL viewport
-(`web/src/viewport/SceneRuntime.ts`, which hot-loads it as a real ES module
-via a Blob URL and re-runs `buildScene`/`updateScene`), the Blender sync/agent
-calls, the code export, and the MP4 render — there is exactly one source of
-truth per scene.
+Remotion can render frames independently and out of order).
+`server/src/agents/sceneAgent.ts` sends the prompt to Claude with that skill as
+the system prompt, extracts the fenced JavaScript block, validates the module
+against the contract (`shared/src/validate.ts`), and retries once with the
+validator's errors if it fails. Without an API key,
+`server/src/agents/templateFallback.ts` maps prompt keywords onto the same
+contract using `shared/src/sceneTemplate.ts` so the app never blocks on AI
+access.
 
 ## How tunable elements connect to sliders and switches
 
@@ -187,11 +143,11 @@ back into the editor and viewport — a slider drag *is* a code edit.
 
 ## Exporting generated code
 
-The **Export code (.zip)** button (`web/src/export/ExportPanel.tsx`) posts to
-`POST /api/export/code`, handled by `server/src/export/codeExport.ts` +
-`exportTemplates.ts`, which streams a ZIP containing the Three.js module, the
-Blender script, and a minimal runnable HTML/package wrapper for the Three.js
-side so the exported project runs standalone outside Zendai.
+The export screen posts to `POST /api/export/code`, handled by
+`server/src/export/codeExport.ts` + `exportTemplates.ts`, which streams a ZIP
+containing the Three.js module and a minimal runnable HTML/package wrapper so
+the exported project runs standalone outside Zendai. GitHub push uses the same
+file packing under `models/<slug>/`.
 
 ## Generating and exporting an MP4 with Remotion
 

@@ -15,10 +15,6 @@ export interface AppConfig {
     mgmtClientSecret: string;
   };
   mongo: { uri: string };
-  blender: {
-    enabled: boolean;
-    mcp: { command: string; args: string[]; bridgeHost: string; bridgePort: number };
-  };
   remotion: {
     compositionId: string;
     fps: number;
@@ -34,12 +30,6 @@ const raw = JSON.parse(
   fs.readFileSync(path.join(repoRoot, 'config', 'default.config.json'), 'utf8'),
 ) as AppConfig;
 
-function envBool(name: string, fallback: boolean): boolean {
-  const value = process.env[name];
-  if (value === undefined) return fallback;
-  return ['1', 'true', 'yes', 'on'].includes(value.toLowerCase());
-}
-
 /** File config merged with environment-variable overrides. */
 export const config: AppConfig = {
   ...raw,
@@ -53,7 +43,6 @@ export const config: AppConfig = {
     mgmtClientSecret: process.env.AUTH0_MGMT_CLIENT_SECRET ?? raw.auth0?.mgmtClientSecret ?? '',
   },
   mongo: { uri: process.env.MONGODB_URI ?? raw.mongo?.uri ?? '' },
-  blender: { ...raw.blender, enabled: envBool('BLENDER_MCP_ENABLED', raw.blender.enabled) },
   remotion: { ...raw.remotion, gl: process.env.REMOTION_GL ?? raw.remotion.gl },
 };
 

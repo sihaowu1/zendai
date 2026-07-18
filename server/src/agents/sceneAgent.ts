@@ -82,7 +82,6 @@ reconstruction of the subject, not a vague approximation.`;
 
 export interface SceneCode {
   code: string;
-  blenderCode: string;
 }
 
 /** Build user message content — plain string when no image, multimodal array when image is present. */
@@ -119,14 +118,13 @@ export async function generateScene(
   const messages: Anthropic.MessageParam[] = [
     { role: 'user', content: buildUserContent(text, image) },
   ];
-  return completeWithRetry(client, messages, '', !!image);
+  return completeWithRetry(client, messages, !!image);
 }
 
 export async function modifyScene(
   client: Anthropic,
   prompt: string,
   code: string,
-  blenderCode: string,
   image?: ReferenceImage,
 ): Promise<SceneCode> {
   const text = image
@@ -147,13 +145,12 @@ export async function modifyScene(
   const messages: Anthropic.MessageParam[] = [
     { role: 'user', content: buildUserContent(text, image) },
   ];
-  return completeWithRetry(client, messages, blenderCode, !!image);
+  return completeWithRetry(client, messages, !!image);
 }
 
 async function completeWithRetry(
   client: Anthropic,
   messages: Anthropic.MessageParam[],
-  previousBlenderCode: string,
   hasImage = false,
 ): Promise<SceneCode> {
   let errors: string[] = [];
@@ -179,7 +176,7 @@ async function completeWithRetry(
     const js = blocks.find((block) => JS_LANGS.has(block.lang));
     errors = js ? validateSceneModule(js.code) : ['the response did not include a ```javascript block'];
     if (js && errors.length === 0) {
-      return { code: js.code, blenderCode: previousBlenderCode };
+      return { code: js.code };
     }
     // Feed the validator's errors back for one corrective attempt. The full
     // content (including thinking blocks) is echoed back unchanged.

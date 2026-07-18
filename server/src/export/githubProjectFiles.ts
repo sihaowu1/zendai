@@ -1,19 +1,20 @@
 import { slugify } from '../utils/fsx';
-import type { ProjectFile } from './codeExport';
+import { packModelFiles, type CodeExportFormat, type ProjectFile } from './codeExport';
+import { reactPackageJson } from './exportTemplates';
 
 export interface GitHubModelInput {
   id: string;
   name: string;
   code: string;
-  blenderCode?: string;
 }
 
 /**
- * Multi-model GitHub layout:
+ * Multi-model GitHub layout (format wrappers per model folder):
  *
  *   models/<slug>/scene.module.js
- *   models/<slug>/scene.blender.py   (optional)
+ *   models/<slug>/…format files…
  *   animations/.gitkeep
+ *   package.json                     (react only, repo root)
  *   README.md
  *
  * Slug = sanitized name + model id so paths stay unique and round-trip on pull.
@@ -21,6 +22,7 @@ export interface GitHubModelInput {
 export function buildGitHubProjectFiles(options: {
   models: GitHubModelInput[];
   title?: string;
+  format?: CodeExportFormat;
 }): ProjectFile[] {
   const models = options.models.filter((m) => m.code.trim());
   if (models.length === 0) {
@@ -28,24 +30,26 @@ export function buildGitHubProjectFiles(options: {
   }
 
   const title = options.title?.trim() || 'Zendai project';
+  const format = options.format ?? 'standalone';
   const files: ProjectFile[] = [];
 
   for (const model of models) {
     const slug = modelFolderSlug(model.name, model.id);
-    files.push({
-      path: `models/${slug}/scene.module.js`,
-      content: model.code,
+    const packed = packModelFiles({
+      code: model.code,
+      format,
+      title: model.name,
     });
-    if (model.blenderCode?.trim()) {
-      files.push({
-        path: `models/${slug}/scene.blender.py`,
-        content: model.blenderCode,
-      });
+    for (const file of packed) {
+      files.push({ path: `models/${slug}/${file.path}`, content: file.content });
     }
   }
 
   files.push({ path: 'animations/.gitkeep', content: '' });
-  files.push({ path: 'README.md', content: githubProjectReadme(title, models) });
+  if (format === 'react') {
+    files.push({ path: 'package.json', content: reactPackageJson() });
+  }
+  files.push({ path: 'README.md', content: githubProjectReadme(title, models, format) });
   return files;
 }
 
@@ -64,7 +68,17 @@ export function parseModelFolder(folder: string): { id: string; name: string } {
   };
 }
 
-function githubProjectReadme(title: string, models: GitHubModelInput[]): string {
+function formatLabel(format: CodeExportFormat): string {
+  if (format === 'react') return 'React component';
+  if (format === 'module') return 'ES module only';
+  return 'Standalone HTML';
+}
+
+function githubProjectReadme(
+  title: string,
+  models: GitHubModelInput[],
+  format: CodeExportFormat,
+): string {
   const list = models
     .map((m) => {
       const slug = modelFolderSlug(m.name, m.id);
@@ -72,13 +86,24 @@ function githubProjectReadme(title: string, models: GitHubModelInput[]): string 
     })
     .join('\n');
 
+  const formatExtra =
+    format === 'standalone'
+      ? 'Each model folder includes `index.html` + `viewer.js`. Serve a folder over HTTP (`npx serve models/<slug>`).'
+      : format === 'react'
+        ? 'Each model folder includes `SceneCanvas.tsx`. Install peers from the root `package.json` (`three`, `react`, `react-dom`).'
+        : 'Each model folder is a raw `scene.module.js`. Hosts inject `THREE`; modules must not `import`/`require`/`fetch`.';
+
   return `# ${title}
 
 Exported from Zendai — code-based 3D models, fully editable.
 
+## Format: ${formatLabel(format)}
+
+${formatExtra}
+
 ## Layout
 
-- \`models/\` — one folder per model (\`scene.module.js\`, optional \`scene.blender.py\`)
+- \`models/\` — one folder per model (\`scene.module.js\` plus format wrappers)
 - \`animations/\` — reserved for animation scripts (empty for now)
 
 ## Models
@@ -88,7 +113,7 @@ ${list}
 ## Scene module contract
 
 Each \`scene.module.js\` exports \`PARAMS\`, optional \`CAMERA\`, \`buildScene\`, and
-\`updateScene\`. Hosts inject \`THREE\`; modules must not \`import\`/\`require\`/\`fetch\`.
+\`updateScene\`.
 
 ## Tweak it
 

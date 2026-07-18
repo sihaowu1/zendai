@@ -31,9 +31,8 @@
   --color-accent-hover: #74b8ff;
   --color-accent-text: #0a1220;
 
-  /* Runtime identity, unchanged in meaning: violet = live Three.js scene,
-     orange = Blender. Violet is a surface colour (timeline clips, selection),
-     never the primary action — that belongs to the blue above. */
+  /* Runtime identity: violet = live Three.js scene (timeline clips, selection).
+     Never the primary action — that belongs to the blue above. */
   --color-scene: #7c5cfa;
   --color-accent-2: #ff8a3d;
 

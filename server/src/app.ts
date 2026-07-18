@@ -5,7 +5,6 @@ import { ensureDir } from './utils/fsx';
 import { aiAvailable } from './ai/client';
 import { authErrorHandler, optionalAuth } from './auth/middleware';
 import { generateRouter } from './routes/generate';
-import { blenderRouter } from './routes/blender';
 import { exportRouter } from './routes/export';
 import { marketplaceRouter } from './routes/marketplace';
 import { isMongoConnected } from './db/connection';
@@ -20,7 +19,6 @@ export function createApp(): express.Express {
       ok: true,
       ai: aiAvailable(),
       model: config.ai.model,
-      blenderEnabled: config.blender.enabled,
       auth0: auth0Configured,
       marketplace: isMongoConnected(),
     });
@@ -31,7 +29,6 @@ export function createApp(): express.Express {
   const api = express.Router();
   api.use(optionalAuth);
   api.use(generateRouter);
-  api.use(blenderRouter);
   api.use(exportRouter);
   api.use(marketplaceRouter);
   app.use('/api', api);

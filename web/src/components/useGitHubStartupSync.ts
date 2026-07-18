@@ -10,7 +10,7 @@ import { readLinkedGitHubRepo } from './useGitHubRepo';
  */
 export function useGitHubStartupSync(options: {
   replaceFromRemote: (
-    models: Array<{ id: string; name: string; code: string; blenderCode?: string }>,
+    models: Array<{ id: string; name: string; code: string }>,
   ) => void;
 }): void {
   const { isAuthenticated, isLoading, configured } = useAuth();

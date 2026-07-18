@@ -77,7 +77,6 @@ export function App() {
               <ExportScreen
                 models={project.models}
                 code={project.code}
-                blenderCode={project.blenderCode}
                 modelName={project.models.find((m) => m.id === project.activeModelId)?.name ?? 'Model'}
                 busy={project.busy}
                 onExportCode={project.exportCode}

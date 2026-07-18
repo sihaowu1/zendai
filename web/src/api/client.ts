@@ -2,17 +2,6 @@ import type { GenerationResult, MarketplaceItemDetail, MarketplaceItemSummary, P
 
 /** Thin typed client for the Zendai server API (proxied through Vite). */
 
-export interface BlenderStatus {
-  enabled: boolean;
-  connected: boolean;
-  tools: string[];
-}
-
-export interface BlenderAgentResult {
-  steps: Array<{ type: 'text' | 'tool'; detail: string }>;
-  finalText: string;
-}
-
 export interface Mp4JobResponse {
   id: string;
   status: 'running' | 'done' | 'error';
@@ -85,19 +74,11 @@ async function postJson<T>(path: string, body: unknown, options?: { requireAuth?
 export const generate = (prompt: string, image?: ReferenceImage) =>
   postJson<GenerationResult>('/api/generate', { prompt, ...(image && { image }) });
 
-export const modify = (prompt: string, code: string, blenderCode: string, image?: ReferenceImage) =>
-  postJson<GenerationResult>('/api/modify', { prompt, code, blenderCode, ...(image && { image }) });
+export const modify = (prompt: string, code: string, image?: ReferenceImage) =>
+  postJson<GenerationResult>('/api/modify', { prompt, code, ...(image && { image }) });
 
-export const animate = (prompt: string, code: string, blenderCode: string) =>
-  postJson<GenerationResult>('/api/animate', { prompt, code, blenderCode });
-
-export const getBlenderStatus = () => getJson<BlenderStatus>('/api/blender/status');
-
-export const blenderSync = (code: string) =>
-  postJson<{ output: string }>('/api/blender/sync', { code });
-
-export const blenderAgent = (prompt: string) =>
-  postJson<BlenderAgentResult>('/api/blender/agent', { prompt });
+export const animate = (prompt: string, code: string) =>
+  postJson<GenerationResult>('/api/animate', { prompt, code });
 
 export const startMp4Export = (code: string, settings: RenderSettings) =>
   postJson<{ jobId: string }>('/api/export/mp4', { code, settings });
@@ -125,14 +106,20 @@ export const publishToMarketplace = (body: PublishRequest) =>
 
 // ─── Export ─────────────────────────────────────────────────────────────────
 
-export async function exportCodeZip(code: string, blenderCode: string): Promise<Blob> {
+export const CODE_EXPORT_FORMATS = ['standalone', 'react', 'module'] as const;
+export type CodeExportFormat = (typeof CODE_EXPORT_FORMATS)[number];
+
+export async function exportCodeZip(
+  code: string,
+  format: CodeExportFormat = 'standalone',
+): Promise<Blob> {
   const response = await fetch('/api/export/code', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       ...(await authHeaders()),
     },
-    body: JSON.stringify({ code, blenderCode }),
+    body: JSON.stringify({ code, format }),
   });
   if (!response.ok) throw await parseError(response);
   return response.blob();
@@ -156,13 +143,13 @@ export interface GitHubModelPayload {
   id: string;
   name: string;
   code: string;
-  blenderCode?: string;
 }
 
 export interface GitHubProjectPayload {
   models: GitHubModelPayload[];
   title?: string;
   message?: string;
+  format?: CodeExportFormat;
 }
 
 export interface GitHubPullResult {

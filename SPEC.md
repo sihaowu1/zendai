@@ -19,7 +19,7 @@ by the Screen 1 redesign (Issue 2) rather than patched in place.
   content size.
 - **Fixed — sidebar scroll had no visible affordance.** `.sidebar` was
   already `overflow-y: auto`, but with the default (invisible-on-dark)
-  browser scrollbar there was no cue that the Export and Blender panels
+  browser scrollbar there was no cue that the Export panel
   existed below the fold on a ~720px-tall viewport. Fixed: added a styled
   thin scrollbar (`scrollbar-color`/`-width` plus `::-webkit-scrollbar`
   rules) so the sidebar visibly indicates it scrolls.
@@ -31,14 +31,13 @@ by the Screen 1 redesign (Issue 2) rather than patched in place.
   highlight ring (`box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08)`) in
   `.control.color input[type='color']` so the control reads as clickable
   regardless of the chosen color.
-- **Open — sidebar still requires scrolling to reach Export/Blender on
+- **Open — sidebar still requires scrolling to reach Export on
   short viewports.** Even with the scrollbar now visible, a viewport under
-  ~900px tall hides the Export and Blender panels by default, since all
-  three panels (Controls, Export, Blender) are always-stacked in one
-  column. Rather than patch this further, Issue 2/3 below already replace
-  this with a model list + on-demand controls floater, which removes the
-  always-visible Controls panel from the stack entirely — fix this as part
-  of that redesign, not as a standalone patch.
+  ~900px tall hides the Export panel by default, since Controls and Export
+  are always-stacked in one column. Rather than patch this further, Issue 2/3
+  below already replace this with a model list + on-demand controls floater,
+  which removes the always-visible Controls panel from the stack entirely —
+  fix this as part of that redesign, not as a standalone patch.
 
 
 Redesign of the web UI into two dedicated screens (Model Generation, Video
