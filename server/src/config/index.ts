@@ -14,6 +14,8 @@ export interface AppConfig {
     mgmtClientId: string;
     mgmtClientSecret: string;
   };
+  auth0: { domain: string; audience: string };
+  mongo: { uri: string };
   blender: {
     enabled: boolean;
     mcp: { command: string; args: string[]; bridgeHost: string; bridgePort: number };
@@ -50,6 +52,7 @@ export const config: AppConfig = {
     mgmtClientId: process.env.AUTH0_MGMT_CLIENT_ID ?? raw.auth0?.mgmtClientId ?? '',
     mgmtClientSecret: process.env.AUTH0_MGMT_CLIENT_SECRET ?? raw.auth0?.mgmtClientSecret ?? '',
   },
+  mongo: { uri: process.env.MONGODB_URI ?? raw.mongo?.uri ?? '' },
   blender: { ...raw.blender, enabled: envBool('BLENDER_MCP_ENABLED', raw.blender.enabled) },
   remotion: { ...raw.remotion, gl: process.env.REMOTION_GL ?? raw.remotion.gl },
 };
@@ -61,5 +64,7 @@ export const auth0Configured = Boolean(config.auth0.domain && config.auth0.audie
 export const auth0MgmtConfigured = Boolean(
   config.auth0.domain && config.auth0.mgmtClientId && config.auth0.mgmtClientSecret,
 );
+/** True when MongoDB URI is configured. */
+export const mongoConfigured = Boolean(config.mongo.uri);
 
 export const rendersDir = path.join(repoRoot, config.paths.renders);

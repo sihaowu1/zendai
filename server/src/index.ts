@@ -1,8 +1,11 @@
 import { createApp } from './app';
 import { config } from './config';
+import { connectMongo } from './db/connection';
 import { log } from './utils/logger';
 
 const app = createApp();
+
+void connectMongo();
 
 app.listen(config.server.port, () => {
   log('server', `MotionForge server listening on http://localhost:${config.server.port}`);

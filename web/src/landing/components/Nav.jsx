@@ -54,6 +54,12 @@ export default function Nav() {
                 {label}
               </a>
             ))}
+            <Link
+              to="/marketplace"
+              className="font-mono-label text-slate-400 transition-colors hover:text-white"
+            >
+              Marketplace
+            </Link>
           </nav>
 
           <div className="flex items-center gap-3">

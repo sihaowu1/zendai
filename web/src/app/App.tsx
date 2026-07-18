@@ -5,6 +5,8 @@ import { StatusBar } from './StatusBar';
 import { ModelGenerationScreen } from '../screens/ModelGenerationScreen';
 import { VideoGenerationScreen } from '../screens/VideoGenerationScreen';
 import { ExportScreen } from '../screens/ExportScreen';
+import { MarketplaceScreen } from '../screens/MarketplaceScreen';
+import { MarketplaceDetailScreen } from '../screens/MarketplaceDetailScreen';
 import { ChatPanel } from '../chat/ChatPanel';
 import { useAuth } from '../auth/useAuth';
 
@@ -72,9 +74,13 @@ export function App() {
                 previewCode={project.previewCode}
                 previewTime={project.previewTime}
                 previewModelName={project.previewModelName}
+                code={project.code}
+                blenderCode={project.blenderCode}
               />
             }
           />
+          <Route path="/marketplace" element={<MarketplaceScreen />} />
+          <Route path="/marketplace/:id" element={<MarketplaceDetailScreen />} />
           <Route path="*" element={<Navigate to="/model" replace />} />
         </Routes>
       </div>
@@ -99,6 +105,9 @@ function TopNav() {
       </NavLink>
       <NavLink to="/export" style={navLinkStyle}>
         Export
+      </NavLink>
+      <NavLink to="/marketplace" style={navLinkStyle}>
+        Marketplace
       </NavLink>
 
       <div style={styles.navSpacer} />
