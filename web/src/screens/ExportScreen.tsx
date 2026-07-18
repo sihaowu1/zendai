@@ -48,10 +48,6 @@ export interface ExportScreenProps {
   previewTime: number;
   /** Display name for whatever's under the playhead (from `useSceneProject.previewModelName`). */
   previewModelName: string;
-  /** The current Three.js scene code (for publishing). */
-  code?: string;
-  /** The current Blender script code (for publishing). */
-  blenderCode?: string;
 }
 
 /** Video aspect ratio (matches `config/default.config.json`'s render resolution, 1280x720). */
@@ -92,8 +88,6 @@ export function ExportScreen({
   previewCode,
   previewTime,
   previewModelName,
-  code,
-  blenderCode,
 }: ExportScreenProps) {
   const { configured, login } = useAuth();
   const github = useGitHubRepo();

@@ -74,8 +74,6 @@ export function App() {
                 previewCode={project.previewCode}
                 previewTime={project.previewTime}
                 previewModelName={project.previewModelName}
-                code={project.code}
-                blenderCode={project.blenderCode}
               />
             }
           />
