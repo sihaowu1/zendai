@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { ChatPanel } from '../chat/ChatPanel';
 import { ControlsFloater } from '../controls/ControlsFloater';
+import { ResizeHandle } from '../layout/ResizeHandle';
+import { useResizable } from '../layout/useResizable';
 import { ModelsLayersList } from '../models/ModelsLayersList';
 import type { useSceneProject } from '../state/useSceneProject';
 import { Viewport } from '../viewport/Viewport';
@@ -32,6 +34,21 @@ export function ModelGenerationScreen({ project }: Props) {
   const [clickAnchor, setClickAnchor] = useState<{ x: number; y: number } | null>(null);
   const activeModel = project.models.find((m) => m.id === project.activeModelId);
 
+  const leftWidth = useResizable({
+    direction: 'horizontal',
+    initial: 320,
+    min: 240,
+    max: 640,
+    storageKey: 'motionforge:model-screen:left-width',
+  });
+  const chatHeight = useResizable({
+    direction: 'vertical',
+    initial: 320,
+    min: 140,
+    max: 800,
+    storageKey: 'motionforge:model-screen:chat-height',
+  });
+
   // Selecting a different model (from the list) invalidates whatever was
   // anchored, since it may no longer correspond to what's on screen.
   useEffect(() => {
@@ -39,9 +56,13 @@ export function ModelGenerationScreen({ project }: Props) {
   }, [project.activeModelId]);
 
   return (
-    <main className="model-screen">
+    <main className="model-screen" style={{ gridTemplateColumns: `${leftWidth.size}px 1px 1fr` }}>
       <div className="model-screen__left">
-        <section className="model-screen__chat" aria-label="Chat">
+        <section
+          className="model-screen__chat"
+          aria-label="Chat"
+          style={{ height: chatHeight.size, flex: 'none' }}
+        >
           <ChatPanel
             busy={project.busy}
             status={project.status}
@@ -49,6 +70,7 @@ export function ModelGenerationScreen({ project }: Props) {
             onModify={project.modify}
           />
         </section>
+        <ResizeHandle direction="vertical" onPointerDown={chatHeight.startDragging} label="Resize chat panel" />
         <section className="model-screen__models" aria-label="Models & Layers">
           <h2 className="model-screen__models-title">Models &amp; Layers</h2>
           <div className="model-screen__models-body">
@@ -60,6 +82,7 @@ export function ModelGenerationScreen({ project }: Props) {
           </div>
         </section>
       </div>
+      <ResizeHandle direction="horizontal" onPointerDown={leftWidth.startDragging} label="Resize sidebar" />
       <Viewport code={project.code} onModelClick={setClickAnchor} />
       {clickAnchor && (
         <ControlsFloater

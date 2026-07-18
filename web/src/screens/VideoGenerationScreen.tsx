@@ -3,6 +3,8 @@ import type { CSSProperties, ReactNode } from 'react';
 import type { TunableParam } from '@motionforge/shared';
 import { ControlsFloater } from '../controls/ControlsFloater';
 import type { ParamChange } from '../controls/ControlsPanel';
+import { ResizeHandle } from '../layout/ResizeHandle';
+import { useResizable } from '../layout/useResizable';
 import { Timeline } from '../timeline/Timeline';
 import type { Clip, Mp4JobState, SceneModel } from '../state/useSceneProject';
 import { Viewport } from '../viewport/Viewport';
@@ -48,15 +50,54 @@ export function VideoGenerationScreen({
   chat,
 }: VideoGenerationScreenProps) {
   const activeModel = models.find((m) => m.id === activeModelId);
+
+  const chatWidth = useResizable({
+    direction: 'horizontal',
+    initial: 280,
+    min: 200,
+    max: 640,
+    storageKey: 'motionforge:video-screen:chat-width',
+  });
+  const materialsWidth = useResizable({
+    direction: 'horizontal',
+    initial: 240,
+    min: 160,
+    max: 640,
+    storageKey: 'motionforge:video-screen:materials-width',
+  });
+  const timelineHeight = useResizable({
+    direction: 'vertical',
+    initial: 200,
+    min: 120,
+    max: 420,
+    storageKey: 'motionforge:video-screen:timeline-height',
+    invert: true,
+  });
+
   return (
-    <section className="video-screen" style={styles.root}>
-      <div className="video-screen__top" style={styles.top}>
+    <section
+      className="video-screen"
+      style={{ ...styles.root, gridTemplateRows: `1fr 1px ${timelineHeight.size}px` }}
+    >
+      <div
+        className="video-screen__top"
+        style={{
+          ...styles.top,
+          gridTemplateColumns: `${chatWidth.size}px 1px ${materialsWidth.size}px 1px 1fr`,
+        }}
+      >
         <Pane title="Chat" area="chat">
           {chat ?? <Placeholder label="Chat" hint="Prompt the AI to edit or extend the video." />}
         </Pane>
+        <ResizeHandle direction="horizontal" onPointerDown={chatWidth.startDragging} label="Resize chat panel" />
         <Pane title="Materials" area="materials">
           <MaterialsList models={models} />
         </Pane>
+        <ResizeHandle
+          direction="horizontal"
+          onPointerDown={materialsWidth.startDragging}
+          label="Resize materials panel"
+        />
         <Pane title="Resulting Video" area="video" bodyStyle={styles.videoPaneBody}>
           <VideoPreview
             job={mp4Job}
@@ -67,6 +108,7 @@ export function VideoGenerationScreen({
           />
         </Pane>
       </div>
+      <ResizeHandle direction="vertical" onPointerDown={timelineHeight.startDragging} label="Resize timeline" />
       <div className="video-screen__timeline" style={styles.timeline}>
         <Pane title="Timeline" area="timeline">
           <Timeline
@@ -214,7 +256,7 @@ const styles = {
   root: {
     display: 'grid',
     gridTemplateRows: '1fr auto',
-    gap: 10,
+    gap: 0,
     padding: 10,
     minHeight: 0,
     height: '100%',
@@ -224,13 +266,11 @@ const styles = {
   top: {
     display: 'grid',
     gridTemplateColumns: 'minmax(240px, 1fr) minmax(200px, 1fr) minmax(320px, 2fr)',
-    gap: 10,
+    gap: 0,
     minHeight: 0,
   },
   timeline: {
-    minHeight: 140,
-    height: '22vh',
-    maxHeight: 260,
+    minHeight: 0,
     display: 'flex',
   },
   pane: {
