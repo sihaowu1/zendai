@@ -63,6 +63,12 @@ export interface SceneModule {
   updateScene(ctx: UpdateContext): void;
 }
 
+/** An optional reference image sent alongside a prompt for image-to-scene generation. */
+export interface ReferenceImage {
+  mediaType: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
+  base64: string;
+}
+
 /** Settings the Remotion pipeline uses to render an MP4. */
 export interface RenderSettings {
   fps: number;

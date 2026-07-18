@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { validateSceneModule } from '@motionforge/shared';
+import { validateSceneModule, type ReferenceImage } from '@motionforge/shared';
 import { config } from '../config';
 import { loadSkill } from '../ai/skills';
 import { extractFencedBlocks } from '../ai/extract';
@@ -13,22 +13,48 @@ import { extractFencedBlocks } from '../ai/extract';
 
 const JS_LANGS = new Set(['js', 'javascript']);
 
+const IMAGE_ANALYSIS_ADDENDUM = `
+
+The user has attached a reference image. Before writing the scene module, analyze the image:
+1. Decompose the subject into named 3D components. For each, choose the best-fit Three.js primitive (BoxGeometry, SphereGeometry, CylinderGeometry, ConeGeometry, TorusGeometry, etc.).
+2. Extract dominant colors as hex values. Estimate material properties (metalness 0–1, roughness 0–1).
+3. Identify proportions and relative sizes between parts, and the parent-child hierarchy.
+4. Estimate lighting direction and intensity from shadows/highlights in the image.
+Use this analysis to drive the PARAMS values (sizes, colors) and the geometry choices in buildScene.`;
+
 export interface SceneCode {
   code: string;
   blenderCode: string;
 }
 
-export async function generateScene(client: Anthropic, prompt: string): Promise<SceneCode> {
-  const messages: Anthropic.MessageParam[] = [
+/** Build user message content — plain string when no image, multimodal array when image is present. */
+function buildUserContent(
+  text: string,
+  image?: ReferenceImage,
+): string | Array<Anthropic.ImageBlockParam | Anthropic.TextBlockParam> {
+  if (!image) return text;
+  return [
     {
-      role: 'user',
-      content:
-        `Create a component-based static Three.js model from this prompt:\n\n${prompt}\n\n` +
-        'Use named parts with per-part size tunables. Do not add time-based animation. ' +
-        'Return the ```javascript scene module.',
+      type: 'image' as const,
+      source: { type: 'base64' as const, media_type: image.mediaType, data: image.base64 },
     },
+    { type: 'text' as const, text },
   ];
-  return completeWithRetry(client, messages, '');
+}
+
+export async function generateScene(
+  client: Anthropic,
+  prompt: string,
+  image?: ReferenceImage,
+): Promise<SceneCode> {
+  const text =
+    `Create a component-based static Three.js model from this prompt:\n\n${prompt}\n\n` +
+    'Use named parts with per-part size tunables. Do not add time-based animation. ' +
+    'Return the ```javascript scene module.';
+  const messages: Anthropic.MessageParam[] = [
+    { role: 'user', content: buildUserContent(text, image) },
+  ];
+  return completeWithRetry(client, messages, '', !!image);
 }
 
 export async function modifyScene(
@@ -36,26 +62,26 @@ export async function modifyScene(
   prompt: string,
   code: string,
   blenderCode: string,
+  image?: ReferenceImage,
 ): Promise<SceneCode> {
+  const text =
+    `Modify the current component-based Three.js model.\n\nInstruction: ${prompt}\n\n` +
+    `Current scene module:\n\`\`\`javascript\n${code}\n\`\`\`\n\n` +
+    'Preserve named parts and PARAMS unless the instruction changes them. ' +
+    'If asked to swap a part or add variants, update that component (and add style tunables if needed). ' +
+    'Do not add time-based animation. ' +
+    'Return the complete updated ```javascript block.';
   const messages: Anthropic.MessageParam[] = [
-    {
-      role: 'user',
-      content:
-        `Modify the current component-based Three.js model.\n\nInstruction: ${prompt}\n\n` +
-        `Current scene module:\n\`\`\`javascript\n${code}\n\`\`\`\n\n` +
-        'Preserve named parts and PARAMS unless the instruction changes them. ' +
-        'If asked to swap a part or add variants, update that component (and add style tunables if needed). ' +
-        'Do not add time-based animation. ' +
-        'Return the complete updated ```javascript block.',
-    },
+    { role: 'user', content: buildUserContent(text, image) },
   ];
-  return completeWithRetry(client, messages, blenderCode);
+  return completeWithRetry(client, messages, blenderCode, !!image);
 }
 
 async function completeWithRetry(
   client: Anthropic,
   messages: Anthropic.MessageParam[],
   previousBlenderCode: string,
+  hasImage = false,
 ): Promise<SceneCode> {
   let errors: string[] = [];
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -63,7 +89,7 @@ async function completeWithRetry(
       model: config.ai.model,
       max_tokens: config.ai.maxTokens,
       thinking: { type: 'adaptive' },
-      system: loadSkill('threejs-modelling'),
+      system: loadSkill('threejs-modelling') + (hasImage ? IMAGE_ANALYSIS_ADDENDUM : ''),
       messages,
     });
     const response = await stream.finalMessage();

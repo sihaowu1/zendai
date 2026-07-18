@@ -37,8 +37,8 @@ export function ModelGenerationScreen({ project }: Props) {
 
   const leftWidth = useResizable({
     direction: 'horizontal',
-    initial: 320,
-    min: 240,
+    initial: 380,
+    min: 300,
     max: 640,
     storageKey: 'motionforge:model-screen:left-width',
   });

@@ -7,6 +7,7 @@ import {
   parseTunables,
   patchParam,
   renameLayer as renameLayerInCode,
+  type ReferenceImage,
   type RenderSettings,
 } from '@motionforge/shared';
 import * as api from '../api/client';
@@ -234,9 +235,9 @@ export function useSceneProject() {
   );
 
   const generate = useCallback(
-    (prompt: string) =>
+    (prompt: string, image?: ReferenceImage) =>
       run('Generating model…', async () => {
-        const result = await api.generate(prompt);
+        const result = await api.generate(prompt, image);
         const id = makeId();
         setModels((current) => [
           ...current,
@@ -262,9 +263,9 @@ export function useSceneProject() {
   );
 
   const modify = useCallback(
-    (prompt: string) =>
+    (prompt: string, image?: ReferenceImage) =>
       run('Modifying model…', async () => {
-        const result = await api.modify(prompt, code, blenderCode);
+        const result = await api.modify(prompt, code, blenderCode, image);
         setModels((current) =>
           current.map((m) =>
             m.id === activeModelId
