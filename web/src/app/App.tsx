@@ -1,5 +1,4 @@
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
-import type { CSSProperties } from 'react';
 import { useSceneProject } from '../state/useSceneProject';
 import { StatusBar } from './StatusBar';
 import { Logo } from './Logo';
@@ -23,9 +22,9 @@ export function App() {
   const project = useSceneProject();
 
   return (
-    <div className="app">
+    <div className="flex h-full flex-col">
       <TopNav />
-      <div style={styles.outlet}>
+      <div className="flex min-h-0 flex-1 flex-col">
         <Routes>
           <Route path="/" element={<Navigate to="/model" replace />} />
           <Route path="/model" element={<ModelGenerationScreen project={project} />} />
@@ -74,19 +73,19 @@ export function App() {
 
 function TopNav() {
   return (
-    <div style={styles.navWrap}>
-      <div style={styles.brand}>
+    <div className="flex flex-shrink-0 flex-col border-b border-border bg-bg-panel">
+      <div className="flex items-center gap-2 px-3.5 pb-2 pt-3 text-text">
         <Logo />
-        <span style={styles.brandName}>Zendai</span>
+        <span className="text-sm font-semibold tracking-wide">Zendai</span>
       </div>
-      <nav style={styles.nav} aria-label="Screens">
-        <NavLink to="/model" style={navLinkStyle}>
+      <nav className="flex gap-1.5 px-3.5 pb-2" aria-label="Screens">
+        <NavLink to="/model" className={navLinkClassName}>
           Model
         </NavLink>
-        <NavLink to="/video" style={navLinkStyle}>
+        <NavLink to="/video" className={navLinkClassName}>
           Video
         </NavLink>
-        <NavLink to="/export" style={navLinkStyle}>
+        <NavLink to="/export" className={navLinkClassName}>
           Export
         </NavLink>
       </nav>
@@ -94,48 +93,8 @@ function TopNav() {
   );
 }
 
-function navLinkStyle({ isActive }: { isActive: boolean }): CSSProperties {
-  return {
-    padding: '6px 12px',
-    borderRadius: 4,
-    fontSize: 13,
-    fontWeight: 600,
-    textDecoration: 'none',
-    color: isActive ? 'var(--text)' : 'var(--text-dim)',
-    background: isActive ? 'var(--bg-raised)' : 'transparent',
-    border: `1px solid ${isActive ? 'var(--border)' : 'transparent'}`,
-  };
+function navLinkClassName({ isActive }: { isActive: boolean }): string {
+  return `rounded px-3 py-1.5 text-[13px] font-semibold no-underline border ${
+    isActive ? 'text-text bg-bg-raised border-border' : 'text-text-dim bg-transparent border-transparent'
+  }`;
 }
-
-const styles = {
-  navWrap: {
-    display: 'flex',
-    flexDirection: 'column',
-    background: 'var(--bg-panel)',
-    borderBottom: '1px solid var(--border)',
-    flexShrink: 0,
-  },
-  brand: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    padding: '12px 14px 8px',
-    color: 'var(--text)',
-  },
-  brandName: {
-    fontSize: 14,
-    fontWeight: 600,
-    letterSpacing: '0.01em',
-  },
-  nav: {
-    display: 'flex',
-    gap: 6,
-    padding: '0 14px 8px',
-  },
-  outlet: {
-    flex: 1,
-    minHeight: 0,
-    display: 'flex',
-    flexDirection: 'column',
-  },
-} satisfies Record<string, CSSProperties>;

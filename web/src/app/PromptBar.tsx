@@ -20,10 +20,11 @@ export function PromptBar({ busy, onGenerate, onModify }: Props) {
   const disabled = busy !== null || prompt.trim() === '';
 
   return (
-    <header className="prompt-bar">
-      <span className="brand">Zendai</span>
+    <header className="flex items-center gap-2 border-b border-border bg-bg-panel px-3.5 py-2.5">
+      <span className="mr-1.5 whitespace-nowrap font-bold tracking-wide text-accent">Zendai</span>
       <input
         type="text"
+        className="flex-1 rounded-md border border-border bg-bg px-2.5 py-1.5 text-text focus:outline focus:outline-1 focus:outline-accent"
         value={prompt}
         placeholder='Describe a 3D scene… e.g. "a gold torus knot spinning over a dark floor"'
         onChange={(event) => setPrompt(event.target.value)}
@@ -31,12 +32,17 @@ export function PromptBar({ busy, onGenerate, onModify }: Props) {
           if (event.key === 'Enter' && !disabled) onGenerate(prompt.trim());
         }}
       />
-      <button type="button" disabled={disabled} onClick={() => onGenerate(prompt.trim())}>
+      <button
+        type="button"
+        className="rounded-md bg-accent px-3.5 py-2 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-45"
+        disabled={disabled}
+        onClick={() => onGenerate(prompt.trim())}
+      >
         Generate
       </button>
       <button
         type="button"
-        className="secondary"
+        className="rounded-md border border-border bg-bg-raised px-3.5 py-2 font-semibold text-text disabled:cursor-not-allowed disabled:opacity-45"
         disabled={disabled}
         onClick={() => onModify(prompt.trim())}
       >

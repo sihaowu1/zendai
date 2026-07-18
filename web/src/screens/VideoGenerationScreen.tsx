@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import type { TunableParam } from '@motionforge/shared';
 import type { ParamChange } from '../controls/ControlsPanel';
 import { ResizeHandle } from '../layout/ResizeHandle';
@@ -74,21 +74,20 @@ export function VideoGenerationScreen({
 
   return (
     <section
-      className="video-screen"
-      style={{ ...styles.root, gridTemplateRows: `1fr 1px ${timelineHeight.size}px` }}
+      className="grid h-full min-h-0 gap-0 bg-bg p-0 text-text grid-rows-[1fr_1px_var(--timeline-h)]"
+      style={{ ['--timeline-h' as string]: `${timelineHeight.size}px` }}
     >
       <div
-        className="video-screen__top"
+        className="grid min-h-0 gap-0"
         style={{
-          ...styles.top,
           gridTemplateColumns: `${chatWidth.size}px 1px ${materialsWidth.size}px 1px 1fr`,
         }}
       >
-        <Pane title="Chat" area="chat">
+        <Pane title="Chat">
           {chat ?? <Placeholder label="Chat" hint="Prompt the AI to edit or extend the video." />}
         </Pane>
         <ResizeHandle direction="horizontal" onPointerDown={chatWidth.startDragging} label="Resize chat panel" />
-        <Pane title="Materials" area="materials">
+        <Pane title="Materials">
           <MaterialsList models={models} />
         </Pane>
         <ResizeHandle
@@ -96,7 +95,7 @@ export function VideoGenerationScreen({
           onPointerDown={materialsWidth.startDragging}
           label="Resize materials panel"
         />
-        <Pane title="Resulting Video" area="video" bodyStyle={styles.videoPaneBody}>
+        <Pane title="Resulting Video" bodyClassName="overflow-hidden p-0">
           <VideoPreview
             job={mp4Job}
             code={code}
@@ -107,8 +106,8 @@ export function VideoGenerationScreen({
         </Pane>
       </div>
       <ResizeHandle direction="vertical" onPointerDown={timelineHeight.startDragging} label="Resize timeline" />
-      <div className="video-screen__timeline" style={styles.timeline}>
-        <Pane title="Timeline" area="timeline">
+      <div className="flex min-h-0">
+        <Pane title="Timeline">
           <Timeline
             clips={clips.map((c) => ({
               id: c.id,
@@ -137,11 +136,14 @@ function MaterialsList({ models }: { models: SceneModel[] }) {
     );
   }
   return (
-    <ul style={styles.materialsList}>
+    <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
       {models.map((m) => (
-        <li key={m.id} style={styles.materialItem}>
-          <div style={styles.materialThumbFallback} aria-hidden="true" />
-          <span style={styles.materialName} title={m.name}>
+        <li
+          key={m.id}
+          className="flex items-center gap-2 rounded border border-border bg-bg-raised px-2 py-1.5"
+        >
+          <div className="h-8 w-8 flex-shrink-0 rounded-sm border border-border bg-bg" aria-hidden="true" />
+          <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[13px] text-text" title={m.name}>
             {m.name}
           </span>
         </li>
@@ -152,138 +154,28 @@ function MaterialsList({ models }: { models: SceneModel[] }) {
 
 function Pane({
   title,
-  area,
   children,
-  bodyStyle,
+  bodyClassName,
 }: {
   title: string;
-  area: string;
   children: ReactNode;
-  bodyStyle?: CSSProperties;
+  bodyClassName?: string;
 }) {
   return (
-    <div
-      className={`video-screen__pane video-screen__pane--${area}`}
-      style={styles.pane}
-      aria-label={title}
-    >
-      <header style={styles.paneHeader}>{title}</header>
-      <div style={bodyStyle ? { ...styles.paneBody, ...bodyStyle } : styles.paneBody}>
-        {children}
-      </div>
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-bg-panel" aria-label={title}>
+      <header className="border-b border-border bg-bg-raised px-3 py-2 text-xs font-semibold uppercase tracking-wider text-text-dim">
+        {title}
+      </header>
+      <div className={`min-h-0 flex-1 overflow-auto p-3 ${bodyClassName ?? ''}`}>{children}</div>
     </div>
   );
 }
 
 function Placeholder({ label, hint }: { label: string; hint: string }) {
   return (
-    <div style={styles.placeholder}>
-      <div style={styles.placeholderLabel}>{label}</div>
-      <div style={styles.placeholderHint}>{hint}</div>
+    <div className="flex h-full flex-col items-center justify-center gap-1.5 rounded border border-dashed border-border p-4 text-center text-text-dim">
+      <div className="text-sm font-semibold text-text">{label}</div>
+      <div className="text-xs">{hint}</div>
     </div>
   );
 }
-
-const styles = {
-  root: {
-    display: 'grid',
-    gridTemplateRows: '1fr auto',
-    gap: 0,
-    padding: 0,
-    minHeight: 0,
-    height: '100%',
-    background: 'var(--bg)',
-    color: 'var(--text)',
-  },
-  top: {
-    display: 'grid',
-    gridTemplateColumns: 'minmax(240px, 1fr) minmax(200px, 1fr) minmax(320px, 2fr)',
-    gap: 0,
-    minHeight: 0,
-  },
-  timeline: {
-    minHeight: 0,
-    display: 'flex',
-  },
-  pane: {
-    display: 'flex',
-    flexDirection: 'column',
-    minHeight: 0,
-    flex: 1,
-    background: 'var(--bg-panel)',
-    overflow: 'hidden',
-  },
-  paneHeader: {
-    padding: '8px 12px',
-    fontSize: 12,
-    fontWeight: 600,
-    letterSpacing: '0.06em',
-    textTransform: 'uppercase',
-    color: 'var(--text-dim)',
-    background: 'var(--bg-raised)',
-    borderBottom: '1px solid var(--border)',
-  },
-  paneBody: {
-    flex: 1,
-    minHeight: 0,
-    overflow: 'auto',
-    padding: 12,
-  },
-  videoPaneBody: {
-    overflow: 'hidden',
-    padding: 0,
-  },
-  placeholder: {
-    height: '100%',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    textAlign: 'center',
-    gap: 6,
-    color: 'var(--text-dim)',
-    border: '1px dashed var(--border)',
-    borderRadius: 4,
-    padding: 16,
-  },
-  placeholderLabel: {
-    fontSize: 14,
-    fontWeight: 600,
-    color: 'var(--text)',
-  },
-  placeholderHint: {
-    fontSize: 12,
-  },
-  materialsList: {
-    listStyle: 'none',
-    margin: 0,
-    padding: 0,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 6,
-  },
-  materialItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    padding: '6px 8px',
-    background: 'var(--bg-raised)',
-    border: '1px solid var(--border)',
-    borderRadius: 4,
-  },
-  materialThumbFallback: {
-    width: 32,
-    height: 32,
-    borderRadius: 3,
-    background: 'var(--bg)',
-    border: '1px solid var(--border)',
-    flexShrink: 0,
-  },
-  materialName: {
-    fontSize: 13,
-    color: 'var(--text)',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-  },
-} satisfies Record<string, CSSProperties>;

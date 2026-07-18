@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import type { CSSProperties } from 'react';
 import type { Status } from '../state/useSceneProject';
 
 /**
@@ -64,29 +63,29 @@ export function ChatPanel({ busy, status, onGenerate, onModify }: Props) {
   };
 
   return (
-    <div style={styles.root}>
-      <div ref={listRef} style={styles.list}>
+    <div className="flex h-full min-h-0 flex-col gap-2">
+      <div ref={listRef} className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto pr-1">
         {messages.length === 0 && (
-          <div style={styles.empty}>
+          <div className="px-1 py-2 text-xs italic text-text-dim">
             Ask the AI to modify the current scene, or start a new one with Generate.
           </div>
         )}
         {messages.map((m) => (
           <div
             key={m.id}
-            style={{
-              ...styles.msg,
-              ...(m.role === 'user' ? styles.msgUser : styles.msgAssistant),
-              ...(m.kind === 'error' ? styles.msgError : null),
-            }}
+            className={`max-w-[90%] whitespace-pre-wrap break-words rounded-lg px-2.5 py-1.5 text-[13px] leading-snug ${
+              m.role === 'user'
+                ? 'self-end bg-accent font-medium text-[#0b0d12]'
+                : 'self-start border border-border bg-bg-raised text-text'
+            } ${m.kind === 'error' ? 'border-error bg-error/15 text-error' : ''}`}
           >
             {m.text}
           </div>
         ))}
-        {busy !== null && <div style={styles.busy}>{busy}</div>}
+        {busy !== null && <div className="self-start px-1 py-1 text-xs italic text-text-dim">{busy}</div>}
       </div>
       <form
-        style={styles.form}
+        className="flex flex-shrink-0 flex-col gap-1.5"
         onSubmit={(event) => {
           event.preventDefault();
           if (!disabled) send('modify');
@@ -97,7 +96,7 @@ export function ChatPanel({ busy, status, onGenerate, onModify }: Props) {
           onChange={(event) => setInput(event.target.value)}
           placeholder="Ask to modify the scene, or generate a new one…"
           rows={2}
-          style={styles.input}
+          className="resize-none rounded border border-border bg-bg-raised p-2 font-sans text-[13px] text-text"
           disabled={busy !== null}
           onKeyDown={(event) => {
             // Enter sends (Modify). Shift+Enter inserts a newline.
@@ -107,16 +106,20 @@ export function ChatPanel({ busy, status, onGenerate, onModify }: Props) {
             }
           }}
         />
-        <div style={styles.buttons}>
+        <div className="flex justify-end gap-1.5">
           <button
             type="button"
-            className="secondary"
+            className="rounded-md border border-border bg-bg-raised px-3.5 py-2 font-semibold text-text disabled:cursor-not-allowed disabled:opacity-45"
             disabled={disabled}
             onClick={() => send('generate')}
           >
             Generate
           </button>
-          <button type="submit" disabled={disabled}>
+          <button
+            type="submit"
+            className="rounded-md bg-accent px-3.5 py-2 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-45"
+            disabled={disabled}
+          >
             Modify
           </button>
         </div>
@@ -128,82 +131,3 @@ export function ChatPanel({ busy, status, onGenerate, onModify }: Props) {
 function makeId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 }
-
-const styles = {
-  root: {
-    display: 'flex',
-    flexDirection: 'column',
-    height: '100%',
-    minHeight: 0,
-    gap: 8,
-  },
-  list: {
-    flex: 1,
-    minHeight: 0,
-    overflowY: 'auto',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 6,
-    paddingRight: 4,
-  },
-  empty: {
-    color: 'var(--text-dim)',
-    fontSize: 12,
-    fontStyle: 'italic',
-    padding: '8px 4px',
-  },
-  msg: {
-    padding: '6px 10px',
-    borderRadius: 8,
-    fontSize: 13,
-    lineHeight: 1.4,
-    maxWidth: '90%',
-    whiteSpace: 'pre-wrap',
-    wordBreak: 'break-word',
-  },
-  msgUser: {
-    alignSelf: 'flex-end',
-    background: 'var(--accent)',
-    color: '#0b0d12',
-    fontWeight: 500,
-  },
-  msgAssistant: {
-    alignSelf: 'flex-start',
-    background: 'var(--bg-raised)',
-    color: 'var(--text)',
-    border: '1px solid var(--border)',
-  },
-  msgError: {
-    background: 'rgba(229, 72, 77, 0.15)',
-    borderColor: 'var(--error)',
-    color: 'var(--error)',
-  },
-  busy: {
-    alignSelf: 'flex-start',
-    fontSize: 12,
-    color: 'var(--text-dim)',
-    fontStyle: 'italic',
-    padding: '4px 4px',
-  },
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 6,
-    flexShrink: 0,
-  },
-  input: {
-    resize: 'none',
-    fontFamily: 'inherit',
-    fontSize: 13,
-    padding: 8,
-    background: 'var(--bg-raised)',
-    color: 'var(--text)',
-    border: '1px solid var(--border)',
-    borderRadius: 4,
-  },
-  buttons: {
-    display: 'flex',
-    justifyContent: 'flex-end',
-    gap: 6,
-  },
-} satisfies Record<string, CSSProperties>;

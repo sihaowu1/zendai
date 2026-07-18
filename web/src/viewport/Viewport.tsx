@@ -49,9 +49,13 @@ export function Viewport({ code, onModelClick }: Props) {
   }, [code]);
 
   return (
-    <div className="viewport" ref={containerRef}>
-      <canvas ref={canvasRef} />
-      {error && <div className="viewport-error">{error}</div>}
+    <div className="relative h-full min-h-0 w-full min-w-0 bg-black" ref={containerRef}>
+      <canvas className="block h-full w-full" ref={canvasRef} />
+      {error && (
+        <div className="absolute bottom-2.5 left-2.5 right-2.5 whitespace-pre-wrap rounded-md border border-error bg-[rgba(30,8,10,0.92)] px-3 py-2 font-mono text-xs text-[#ffb4b8]">
+          {error}
+        </div>
+      )}
     </div>
   );
 }

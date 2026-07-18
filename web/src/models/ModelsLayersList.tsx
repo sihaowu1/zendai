@@ -28,23 +28,30 @@ export function ModelsLayersList({ models, activeModelId, onSelectModel }: Props
 
   if (models.length === 0) {
     return (
-      <p className="hint">
+      <p className="m-0 text-xs leading-relaxed text-text-dim">
         No models yet. Generate one from the chat above to see it listed here.
       </p>
     );
   }
 
   return (
-    <ul className="models-list">
+    <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
       {models.map((model) => {
         const layers = layersByModel.get(model.id) ?? [];
         const expanded = expandedId === model.id;
         const active = model.id === activeModelId;
         return (
-          <li key={model.id} className={active ? 'model-row model-row--active' : 'model-row'}>
+          <li
+            key={model.id}
+            className={`overflow-hidden rounded-md border bg-bg-raised ${
+              active ? 'border-accent' : 'border-border'
+            }`}
+          >
             <button
               type="button"
-              className="model-row__header"
+              className={`flex w-full items-center gap-2 rounded-none border-none bg-transparent px-2.5 py-2 text-left font-medium ${
+                active ? 'text-accent' : 'text-text'
+              }`}
               aria-expanded={expanded}
               onClick={() => {
                 onSelectModel(model.id);
@@ -52,29 +59,33 @@ export function ModelsLayersList({ models, activeModelId, onSelectModel }: Props
               }}
             >
               <span
-                className={
-                  expanded ? 'model-row__chevron model-row__chevron--open' : 'model-row__chevron'
-                }
+                className={`inline-block flex-shrink-0 text-[10px] text-text-dim transition-transform duration-150 ease-out ${
+                  expanded ? 'rotate-90' : ''
+                }`}
                 aria-hidden="true"
               >
                 ▸
               </span>
-              <span className="model-row__name" title={model.name}>
+              <span
+                className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-[13px]"
+                title={model.name}
+              >
                 {model.name}
               </span>
-              <span className="model-row__count" title={`${layers.length} layer(s)`}>
+              <span
+                className="min-w-[18px] flex-shrink-0 rounded-full border border-border bg-bg px-1.5 py-px text-center text-[11px] tabular-nums text-text-dim"
+                title={`${layers.length} layer(s)`}
+              >
                 {layers.length}
               </span>
             </button>
             {expanded && (
-              <ul className="model-row__layers">
+              <ul className="m-0 flex flex-col gap-0.5 py-0 pl-[30px] pr-2.5 pb-2">
                 {layers.length === 0 ? (
-                  <li className="model-row__layer model-row__layer--empty">
-                    No mesh groups found
-                  </li>
+                  <li className="font-sans text-xs italic text-text-dim">No mesh groups found</li>
                 ) : (
                   layers.map((layer) => (
-                    <li key={layer} className="model-row__layer">
+                    <li key={layer} className="font-mono text-xs text-text-dim">
                       {layer}
                     </li>
                   ))

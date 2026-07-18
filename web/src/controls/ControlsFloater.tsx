@@ -56,21 +56,30 @@ export function ControlsFloater({ anchor, title, tunables, onChange, onClose }: 
   };
 
   return (
-    <div ref={rootRef} className="controls-floater" style={style} role="dialog" aria-label={`${title} controls`}>
-      <header className="controls-floater__header">
-        <span className="controls-floater__title" title={title}>
+    <div
+      ref={rootRef}
+      className="z-50 flex max-h-[min(70vh,480px)] w-[280px] flex-col overflow-hidden rounded-lg border border-border bg-bg-panel shadow-[0_12px_32px_rgba(0,0,0,0.45)]"
+      style={style}
+      role="dialog"
+      aria-label={`${title} controls`}
+    >
+      <header className="flex flex-shrink-0 items-center gap-2 border-b border-border bg-bg-raised py-2 pl-3 pr-2">
+        <span
+          className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-text-dim"
+          title={title}
+        >
           {title}
         </span>
         <button
           type="button"
-          className="controls-floater__close"
+          className="flex h-[22px] w-[22px] flex-shrink-0 items-center justify-center rounded bg-transparent p-0 text-base leading-none text-text-dim hover:bg-bg hover:text-text"
           aria-label="Close controls"
           onClick={onClose}
         >
           ×
         </button>
       </header>
-      <div className="controls-floater__body">
+      <div className="min-h-0 overflow-y-auto p-3 [&_section]:border-0 [&_section]:bg-transparent [&_section]:p-0">
         <ControlsPanel tunables={tunables} onChange={onChange} />
       </div>
     </div>

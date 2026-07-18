@@ -56,12 +56,15 @@ export function ModelGenerationScreen({ project }: Props) {
   }, [project.activeModelId]);
 
   return (
-    <main className="model-screen" style={{ gridTemplateColumns: `${leftWidth.size}px 1px 1fr` }}>
-      <div className="model-screen__left">
+    <main
+      className="grid min-h-0 flex-1 grid-cols-[var(--model-left-w)_1px_1fr]"
+      style={{ ['--model-left-w' as string]: `${leftWidth.size}px` }}
+    >
+      <div className="flex min-h-0 min-w-0 flex-col bg-bg-panel">
         <section
-          className="model-screen__chat"
+          className="flex min-h-0 flex-none flex-col p-3"
           aria-label="Chat"
-          style={{ height: chatHeight.size, flex: 'none' }}
+          style={{ height: chatHeight.size }}
         >
           <ChatPanel
             busy={project.busy}
@@ -71,9 +74,11 @@ export function ModelGenerationScreen({ project }: Props) {
           />
         </section>
         <ResizeHandle direction="vertical" onPointerDown={chatHeight.startDragging} label="Resize chat panel" />
-        <section className="model-screen__models" aria-label="Models & Layers">
-          <h2 className="model-screen__models-title">Models &amp; Layers</h2>
-          <div className="model-screen__models-body">
+        <section className="flex min-h-0 flex-1 flex-col gap-2 p-3" aria-label="Models & Layers">
+          <h2 className="m-0 flex-shrink-0 text-xs font-semibold uppercase tracking-wider text-text-dim">
+            Models &amp; Layers
+          </h2>
+          <div className="min-h-0 flex-1 overflow-y-auto">
             <ModelsLayersList
               models={project.models}
               activeModelId={project.activeModelId}

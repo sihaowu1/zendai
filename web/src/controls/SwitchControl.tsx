@@ -9,14 +9,14 @@ interface Props {
 export function SwitchControl({ param, onChange }: Props) {
   const checked = param.value === true;
   return (
-    <label className="control switch">
-      <span className="control-label">{param.label}</span>
+    <label className="flex flex-row items-center justify-between gap-1">
+      <span className="text-xs text-text-dim">{param.label}</span>
       <input
         type="checkbox"
+        className="h-[18px] w-[34px] accent-accent"
         checked={checked}
         onChange={(event) => onChange(param.name, event.target.checked)}
       />
-      <span className="switch-track" aria-hidden="true" />
     </label>
   );
 }

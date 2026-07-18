@@ -46,29 +46,53 @@ export function ExportScreen({ models, activeModelId, code, tunables, onParamCha
   });
 
   return (
-    <main className="export-screen" style={{ gridTemplateColumns: `${leftWidth.size}px 1px 1fr` }}>
-      <div className="export-screen__left">
-        <section className="panel" aria-label="Export options">
-          <h2>Export options</h2>
-          <p className="hint">Download the generated project as code, or render it to an MP4.</p>
-          <button type="button" disabled>
+    <main
+      className="grid min-h-0 flex-1 grid-cols-[var(--export-left-w)_1px_1fr]"
+      style={{ ['--export-left-w' as string]: `${leftWidth.size}px` }}
+    >
+      <div className="flex min-h-0 min-w-0 flex-col gap-2.5 overflow-y-auto bg-bg-panel p-3">
+        <section className="flex flex-col gap-2.5 rounded-lg border border-border bg-bg-raised p-3" aria-label="Export options">
+          <h2 className="m-0 flex items-center gap-1.5 text-xs uppercase tracking-wider text-text-dim">Export options</h2>
+          <p className="m-0 text-xs leading-relaxed text-text-dim">
+            Download the generated project as code, or render it to an MP4.
+          </p>
+          <button
+            type="button"
+            className="rounded-md bg-accent px-3.5 py-2 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-45"
+            disabled
+          >
             Export code (.zip)
           </button>
-          <button type="button" disabled>
+          <button
+            type="button"
+            className="rounded-md bg-accent px-3.5 py-2 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-45"
+            disabled
+          >
             Render MP4 (Remotion)
           </button>
         </section>
-        <section className="panel" aria-label="Export to GitHub">
-          <h2>Export to GitHub</h2>
-          <p className="hint">Push the generated project straight to a GitHub repository.</p>
-          <input type="text" placeholder="owner/repo" disabled />
-          <button type="button" disabled>
+        <section className="flex flex-col gap-2.5 rounded-lg border border-border bg-bg-raised p-3" aria-label="Export to GitHub">
+          <h2 className="m-0 flex items-center gap-1.5 text-xs uppercase tracking-wider text-text-dim">Export to GitHub</h2>
+          <p className="m-0 text-xs leading-relaxed text-text-dim">
+            Push the generated project straight to a GitHub repository.
+          </p>
+          <input
+            type="text"
+            className="rounded-md border border-border bg-bg px-2.5 py-1.5 text-text focus:outline focus:outline-1 focus:outline-accent"
+            placeholder="owner/repo"
+            disabled
+          />
+          <button
+            type="button"
+            className="rounded-md bg-accent px-3.5 py-2 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-45"
+            disabled
+          >
             Push to GitHub
           </button>
         </section>
       </div>
       <ResizeHandle direction="horizontal" onPointerDown={leftWidth.startDragging} label="Resize export options" />
-      <div className="export-screen__right">
+      <div className="relative min-h-0 min-w-0">
         <VideoPreview
           job={mp4Job}
           code={code}

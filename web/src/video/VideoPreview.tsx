@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import type { CSSProperties } from 'react';
 import type { TunableParam } from '@motionforge/shared';
 import { ControlsFloater } from '../controls/ControlsFloater';
 import type { ParamChange } from '../controls/ControlsPanel';
@@ -35,26 +34,27 @@ export function VideoPreview({ job, code, tunables, onParamChange, modelName }: 
         key={job.url}
         src={job.url}
         controls
-        style={styles.video}
+        className="block h-full max-h-full w-full rounded bg-black"
         aria-label="Rendered video preview"
       />
     );
   }
 
+  const badgeClass =
+    'absolute left-2 bottom-2 max-w-[calc(100%-16px)] rounded border border-border bg-[rgba(18,21,28,0.85)] px-2.5 py-1 text-xs text-text-dim';
+
   return (
-    <div style={styles.livePreview}>
+    <div className="relative h-full w-full">
       <Viewport code={code} onModelClick={setClickAnchor} />
       {job?.status === 'running' && (
-        <div style={styles.liveBadge}>
-          Rendering… {Math.round((job.progress ?? 0) * 100)}%
-        </div>
+        <div className={badgeClass}>Rendering… {Math.round((job.progress ?? 0) * 100)}%</div>
       )}
       {job?.status === 'error' && (
-        <div style={{ ...styles.liveBadge, ...styles.liveBadgeError }}>
+        <div className={`${badgeClass} border-error text-error`}>
           Render failed{job.error ? `: ${job.error}` : ''}
         </div>
       )}
-      {!job && <div style={styles.liveBadge}>Live preview — click the model to tweak it</div>}
+      {!job && <div className={badgeClass}>Live preview — click the model to tweak it</div>}
       {clickAnchor && (
         <ControlsFloater
           anchor={clickAnchor}
@@ -67,35 +67,3 @@ export function VideoPreview({ job, code, tunables, onParamChange, modelName }: 
     </div>
   );
 }
-
-const styles = {
-  video: {
-    width: '100%',
-    height: '100%',
-    maxHeight: '100%',
-    background: '#000',
-    borderRadius: 4,
-    display: 'block',
-  },
-  livePreview: {
-    position: 'relative',
-    width: '100%',
-    height: '100%',
-  },
-  liveBadge: {
-    position: 'absolute',
-    left: 8,
-    bottom: 8,
-    maxWidth: 'calc(100% - 16px)',
-    padding: '4px 10px',
-    borderRadius: 4,
-    fontSize: 12,
-    color: 'var(--text-dim)',
-    background: 'rgba(18, 21, 28, 0.85)',
-    border: '1px solid var(--border)',
-  },
-  liveBadgeError: {
-    color: 'var(--error)',
-    borderColor: 'var(--error)',
-  },
-} satisfies Record<string, CSSProperties>;

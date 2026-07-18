@@ -4,9 +4,9 @@ interface Props {
 
 /**
  * Zendai mark: an ensō (the hand-drawn zen circle, never fully closed) whose
- * gap reads as a blinking code cursor — zen circle meets code cursor. The
- * stroke tapers toward the opening to mimic a single brush pass instead of a
- * uniform ring.
+ * gap reads as a blinking code cursor — zen circle meets code cursor. A thin
+ * inner medallion ring and a faceted gem at the cursor give it a seal-like,
+ * regal weight instead of a bare circle.
  */
 export function Logo({ size = 22 }: Props) {
   return (
@@ -24,7 +24,22 @@ export function Logo({ size = 22 }: Props) {
         strokeWidth="5"
         strokeLinecap="round"
       />
-      <rect x="30.5" y="12" width="8" height="8" rx="2" fill="var(--accent)" />
+      <circle
+        cx="26"
+        cy="27"
+        r="13.5"
+        stroke="currentColor"
+        strokeWidth="1"
+        strokeOpacity="0.28"
+      />
+      <g transform="translate(34.5 16) rotate(45)">
+        <rect x="-4.5" y="-4.5" width="9" height="9" rx="1.5" className="fill-accent" />
+        <path
+          d="M-4.5 0H4.5M0 -4.5V4.5"
+          stroke="rgba(255,255,255,0.4)"
+          strokeWidth="0.75"
+        />
+      </g>
     </svg>
   );
 }

@@ -5,16 +5,20 @@ interface Props {
   status: Status | null;
 }
 
+const base = 'flex-shrink-0 border-t border-border bg-bg-panel px-3.5 py-1.5 text-xs text-text-dim';
+
+const kindClass: Record<string, string> = {
+  busy: 'text-warn',
+  error: 'text-error',
+  info: 'text-ok',
+};
+
 export function StatusBar({ busy, status }: Props) {
   if (busy) {
-    return <footer className="status-bar busy">{busy}</footer>;
+    return <footer className={`${base} ${kindClass.busy}`}>{busy}</footer>;
   }
   if (status) {
-    return <footer className={`status-bar ${status.kind}`}>{status.text}</footer>;
+    return <footer className={`${base} ${kindClass[status.kind] ?? ''}`}>{status.text}</footer>;
   }
-  return (
-    <footer className="status-bar">
-      Ready — edit the code, drag a slider, or prompt the AI.
-    </footer>
-  );
+  return <footer className={base}>Ready — edit the code, drag a slider, or prompt the AI.</footer>;
 }

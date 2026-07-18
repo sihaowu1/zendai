@@ -27,34 +27,48 @@ export function ExportPanel({ busy, mp4Job, onExportCode, onExportMp4 }: Props) 
   const rendering = mp4Job?.status === 'running';
 
   return (
-    <section className="panel">
-      <h2>Export</h2>
-      <button type="button" disabled={busy !== null} onClick={onExportCode}>
+    <section className="flex flex-col gap-2.5 rounded-lg border border-border bg-bg-raised p-3">
+      <h2 className="m-0 flex items-center gap-1.5 text-xs uppercase tracking-wider text-text-dim">Export</h2>
+      <button
+        type="button"
+        className="rounded-md bg-accent px-3.5 py-2 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-45"
+        disabled={busy !== null}
+        onClick={onExportCode}
+      >
         Export code (.zip)
       </button>
 
-      <div className="export-settings">
-        <label>
+      <div className="grid grid-cols-3 gap-1.5">
+        <label className="flex flex-col gap-1 text-[11px] text-text-dim">
           FPS
-          <select value={fps} onChange={(event) => setFps(Number(event.target.value))}>
+          <select
+            className="rounded-md border border-border bg-bg px-2.5 py-1.5 text-text focus:outline focus:outline-1 focus:outline-accent"
+            value={fps}
+            onChange={(event) => setFps(Number(event.target.value))}
+          >
             <option value={24}>24</option>
             <option value={30}>30</option>
             <option value={60}>60</option>
           </select>
         </label>
-        <label>
+        <label className="flex flex-col gap-1 text-[11px] text-text-dim">
           Seconds
           <input
             type="number"
+            className="rounded-md border border-border bg-bg px-2.5 py-1.5 text-text focus:outline focus:outline-1 focus:outline-accent"
             min={1}
             max={60}
             value={duration}
             onChange={(event) => setDuration(Number(event.target.value))}
           />
         </label>
-        <label>
+        <label className="flex flex-col gap-1 text-[11px] text-text-dim">
           Size
-          <select value={resolution} onChange={(event) => setResolution(Number(event.target.value))}>
+          <select
+            className="rounded-md border border-border bg-bg px-2.5 py-1.5 text-text focus:outline focus:outline-1 focus:outline-accent"
+            value={resolution}
+            onChange={(event) => setResolution(Number(event.target.value))}
+          >
             {RESOLUTIONS.map((option, index) => (
               <option key={option.label} value={index}>
                 {option.label}
@@ -66,6 +80,7 @@ export function ExportPanel({ busy, mp4Job, onExportCode, onExportMp4 }: Props) 
 
       <button
         type="button"
+        className="rounded-md bg-accent px-3.5 py-2 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-45"
         disabled={busy !== null || rendering}
         onClick={() =>
           onExportMp4({
@@ -80,23 +95,32 @@ export function ExportPanel({ busy, mp4Job, onExportCode, onExportMp4 }: Props) 
       </button>
 
       {mp4Job && (
-        <div className="mp4-status">
+        <div className="flex flex-col gap-2">
           {mp4Job.status === 'running' && (
             <>
-              <div className="progress">
-                <div className="progress-fill" style={{ width: `${Math.round(mp4Job.progress * 100)}%` }} />
+              <div className="h-1.5 overflow-hidden rounded-full bg-bg">
+                <div
+                  className="h-full bg-accent transition-[width] duration-400 ease-out"
+                  style={{ width: `${Math.round(mp4Job.progress * 100)}%` }}
+                />
               </div>
-              <p className="hint">
+              <p className="m-0 text-xs leading-relaxed text-text-dim">
                 {mp4Job.message} ({Math.round(mp4Job.progress * 100)}%)
               </p>
             </>
           )}
           {mp4Job.status === 'done' && mp4Job.url && (
-            <a className="download-link" href={mp4Job.url} download>
+            <a
+              className="inline-block rounded-md bg-ok px-3.5 py-2 text-center font-semibold text-white no-underline"
+              href={mp4Job.url}
+              download
+            >
               Download MP4
             </a>
           )}
-          {mp4Job.status === 'error' && <p className="hint error">{mp4Job.error}</p>}
+          {mp4Job.status === 'error' && (
+            <p className="m-0 text-xs leading-relaxed text-error">{mp4Job.error}</p>
+          )}
         </div>
       )}
     </section>

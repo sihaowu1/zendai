@@ -1,5 +1,3 @@
-import type { CSSProperties } from 'react';
-
 /**
  * One clip on the timeline. `start` and `duration` are in seconds.
  */
@@ -36,17 +34,23 @@ export function Timeline({ clips, totalDuration }: TimelineProps) {
 
   if (clips.length === 0) {
     return (
-      <div style={styles.empty} aria-label="Timeline">
-        <span style={styles.emptyLabel}>No clips yet</span>
-        <span style={styles.emptyHint}>Rendered scenes will appear here as clips.</span>
+      <div
+        className="flex h-full w-full flex-col items-center justify-center gap-1 rounded border border-dashed border-border p-3 text-text-dim"
+        aria-label="Timeline"
+      >
+        <span className="text-[13px] font-semibold text-text">No clips yet</span>
+        <span className="text-xs">Rendered scenes will appear here as clips.</span>
       </div>
     );
   }
 
   return (
-    <div style={styles.root} aria-label="Timeline">
+    <div className="flex h-full w-full min-h-0 flex-col gap-1 p-1" aria-label="Timeline">
       <Ruler total={total} />
-      <div style={styles.track} role="list">
+      <div
+        className="relative min-h-[40px] flex-1 overflow-hidden rounded border border-border bg-bg-raised"
+        role="list"
+      >
         {clips.map((clip) => {
           // Position and size as percentages of the total timeline length.
           const leftPct = (clip.start / total) * 100;
@@ -58,14 +62,14 @@ export function Timeline({ clips, totalDuration }: TimelineProps) {
               title={`${clip.label} — ${clip.start.toFixed(2)}s → ${(
                 clip.start + clip.duration
               ).toFixed(2)}s`}
+              className="absolute top-1 bottom-1 flex min-w-[2px] items-center overflow-hidden rounded-[3px] px-1.5 text-xs font-semibold text-[#0b0d12] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.25)]"
               style={{
-                ...styles.clip,
                 left: `${leftPct}%`,
                 width: `${widthPct}%`,
-                background: clip.color ?? 'var(--accent)',
+                background: clip.color ?? 'var(--color-accent)',
               }}
             >
-              <span style={styles.clipLabel}>{clip.label}</span>
+              <span className="overflow-hidden text-ellipsis whitespace-nowrap">{clip.label}</span>
             </div>
           );
         })}
@@ -85,14 +89,12 @@ function Ruler({ total }: { total: number }) {
   for (let t = 0; t <= total + 1e-6; t += step) ticks.push(t);
 
   return (
-    <div style={styles.ruler} aria-hidden="true">
+    <div className="relative h-4 flex-shrink-0 text-[10px] text-text-dim" aria-hidden="true">
       {ticks.map((t) => (
         <span
           key={t}
-          style={{
-            ...styles.tick,
-            left: `${(t / total) * 100}%`,
-          }}
+          className="absolute top-0 -translate-x-1/2 whitespace-nowrap"
+          style={{ left: `${(t / total) * 100}%` }}
         >
           {formatSeconds(t)}
         </span>
@@ -116,78 +118,3 @@ function formatSeconds(t: number): string {
   const s = Math.round(t % 60);
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
-
-const styles = {
-  root: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 4,
-    width: '100%',
-    height: '100%',
-    minHeight: 0,
-    padding: 4,
-  },
-  ruler: {
-    position: 'relative',
-    height: 16,
-    color: 'var(--text-dim)',
-    fontSize: 10,
-    flexShrink: 0,
-  },
-  tick: {
-    position: 'absolute',
-    top: 0,
-    transform: 'translateX(-50%)',
-    whiteSpace: 'nowrap',
-  },
-  track: {
-    position: 'relative',
-    flex: 1,
-    minHeight: 40,
-    background: 'var(--bg-raised)',
-    border: '1px solid var(--border)',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  clip: {
-    position: 'absolute',
-    top: 4,
-    bottom: 4,
-    minWidth: 2,
-    borderRadius: 3,
-    padding: '0 6px',
-    display: 'flex',
-    alignItems: 'center',
-    color: '#0b0d12',
-    fontSize: 12,
-    fontWeight: 600,
-    boxShadow: 'inset 0 0 0 1px rgba(0, 0, 0, 0.25)',
-    overflow: 'hidden',
-  },
-  clipLabel: {
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-  },
-  empty: {
-    width: '100%',
-    height: '100%',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    color: 'var(--text-dim)',
-    border: '1px dashed var(--border)',
-    borderRadius: 4,
-    padding: 12,
-  },
-  emptyLabel: {
-    fontSize: 13,
-    fontWeight: 600,
-    color: 'var(--text)',
-  },
-  emptyHint: {
-    fontSize: 12,
-  },
-} satisfies Record<string, CSSProperties>;
