@@ -102,99 +102,132 @@ export default function Hero() {
 }
 
 function ProductMockup({ typed }: { typed: string }) {
+  const [activeTab, setActiveTab] = useState<'Model' | 'Video' | 'Export'>('Model');
+  const [sliderValues, setSliderValues] = useState({ headSize: 72, armLength: 55, legLength: 65, roughness: 35 });
+  const [activeSlider, setActiveSlider] = useState<string | null>(null);
+
+  const handleSliderChange = (name: string, e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pct = Math.round(Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100)));
+    setSliderValues(prev => ({ ...prev, [name]: pct }));
+  };
+
   return (
     <div className="relative">
-      {/* Window chrome */}
-      <div className="rounded-xl border hairline border-white/10 bg-[#0d1117] shadow-[0_1px_2px_rgba(0,0,0,0.2),0_24px_60px_-24px_rgba(0,0,0,0.5)] overflow-hidden">
-        {/* Top nav bar */}
-        <div className="flex items-center justify-between border-b hairline border-white/10 px-4 py-2">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full bg-white/20" />
-              <span className="h-2.5 w-2.5 rounded-full bg-white/20" />
-              <span className="h-2.5 w-2.5 rounded-full bg-white/20" />
-            </div>
-            <span className="font-mono-label text-white/80 text-[10px] font-semibold tracking-wider">ZENDAI</span>
-          </div>
-          <div className="flex items-center gap-4 font-mono-label text-[10px]">
-            <span className="text-royal-blue border-b border-royal-blue pb-0.5">Model</span>
-            <span className="text-slate-500">Video</span>
-            <span className="text-slate-500">Export</span>
-          </div>
-          <button className="flex items-center gap-1.5 rounded-md bg-royal-blue px-2 py-1 text-white font-mono-label text-[10px]">
-            <Download className="h-2.5 w-2.5" /> Export
+      <div className="rounded-xl border border-[rgba(255,255,255,0.08)] bg-[#0d0d0f] shadow-[0_1px_2px_rgba(0,0,0,0.3),0_32px_64px_-16px_rgba(0,0,0,0.6)] overflow-hidden">
+        {/* Top nav - matches real TopNav */}
+        <div className="flex items-center gap-4 border-b border-[rgba(255,255,255,0.08)] bg-[#151517] px-3 py-2">
+          <span className="text-[11px] font-semibold text-[#f4f4f5] tracking-wide">zendai</span>
+          <nav className="flex gap-0.5">
+            {(['Model', 'Video', 'Export'] as const).map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveTab(tab)}
+                className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                  activeTab === tab
+                    ? 'bg-[#1a1a1d] text-[#f4f4f5]'
+                    : 'text-[#a8a8b0] hover:text-[#f4f4f5] hover:bg-[#1a1a1d]/60'
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </nav>
+          <div className="flex-1" />
+          <button className="rounded-md bg-[#4da3ff] px-2 py-0.5 text-[10px] font-medium text-[#0a1220] hover:bg-[#74b8ff] transition-colors">
+            Log in
           </button>
         </div>
 
         {/* Main body: sidebar + viewport */}
-        <div className="grid grid-cols-[160px_1fr]">
+        <div className="grid grid-cols-[170px_1px_1fr]">
           {/* Left sidebar */}
-          <div className="border-r hairline border-white/10 flex flex-col">
-            {/* Chat area */}
-            <div className="p-2.5 border-b hairline border-white/10">
-              <div className="flex items-center gap-1.5 mb-2">
-                <Sparkles className="h-3 w-3 text-royal-blue shrink-0" />
-                <span className="font-mono-label text-slate-500 text-[9px]">PROMPT</span>
+          <div className="flex flex-col bg-[#151517]">
+            {/* Chat section */}
+            <div className="p-2.5 flex flex-col gap-2" style={{ height: 130 }}>
+              <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.11em] text-[#74757d]">Model chat</span>
+              <div className="flex-1 flex flex-col gap-1 overflow-hidden">
+                <p className="m-0 text-[9px] leading-snug text-[#74757d]">Generate builds a new model. Modify edits the current one.</p>
               </div>
-              <div className="rounded-md border hairline border-white/10 bg-white/5 px-2 py-1.5">
-                <div className="text-[10px] text-slate-300 leading-tight">
-                  <span>{typed.slice(0, 40)}</span>
-                  <span className="inline-block w-px h-3 bg-white align-middle ml-0.5 animate-pulse" />
+              {/* Composer */}
+              <div className="rounded-lg border border-[rgba(255,255,255,0.08)] bg-[#0d0d0f] overflow-hidden">
+                <div className="px-2 py-1.5 text-[10px] text-[#f4f4f5] leading-tight min-h-[28px]">
+                  <span>{typed.slice(0, 36)}</span>
+                  <span className="inline-block w-px h-3 bg-white/80 align-middle ml-0.5 animate-pulse" />
+                </div>
+                <div className="flex items-center justify-end gap-1 px-1.5 pb-1.5">
+                  <button className="rounded-md px-2 py-0.5 text-[9px] text-[#a8a8b0] hover:text-[#f4f4f5] hover:bg-[#222226] transition-colors">Modify</button>
+                  <button className="rounded-md bg-[#4da3ff] px-2 py-0.5 text-[9px] font-medium text-[#0a1220]">Generate</button>
                 </div>
               </div>
-              <button className="mt-2 w-full rounded-md bg-royal-blue/90 px-2 py-1 font-mono-label text-[9px] text-white">
-                Generate
-              </button>
             </div>
 
+            {/* Resize handle */}
+            <div className="h-px bg-[rgba(255,255,255,0.08)]" />
+
             {/* Models & Layers */}
-            <div className="p-2.5 flex-1">
-              <div className="font-mono-label text-slate-500 text-[9px] mb-2">MODELS & LAYERS</div>
-              <div className="space-y-1">
-                <div className="flex items-center gap-1.5 rounded-md bg-royal-blue/20 border hairline border-royal-blue/40 px-2 py-1">
-                  <Box className="h-3 w-3 text-royal-blue" />
-                  <span className="text-[10px] text-white truncate">Dune terrain</span>
+            <div className="p-2.5 flex-1 flex flex-col gap-2">
+              <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.11em] text-[#74757d]">Models & Layers</span>
+              <div className="space-y-1.5">
+                {/* Active model */}
+                <div className="rounded-lg border border-[rgba(255,255,255,0.08)] bg-[#222226] px-2 py-1.5 flex items-center gap-1.5">
+                  <Box className="h-3 w-3 text-[#4da3ff] shrink-0" />
+                  <span className="text-[10px] text-[#4da3ff] font-medium truncate flex-1">Component figure</span>
+                  <span className="text-[9px] text-[#74757d] border border-[rgba(255,255,255,0.08)] rounded-full px-1">6</span>
                 </div>
-                <div className="flex items-center gap-1.5 rounded-md px-2 py-1 border hairline border-white/5">
-                  <Layers className="h-3 w-3 text-slate-600" />
-                  <span className="text-[10px] text-slate-400 truncate">Focal pyramid</span>
-                </div>
-                <div className="flex items-center gap-1.5 rounded-md px-2 py-1 border hairline border-white/5">
-                  <Layers className="h-3 w-3 text-slate-600" />
-                  <span className="text-[10px] text-slate-400 truncate">Ground plane</span>
+                {/* Layers (expanded) */}
+                <div className="pl-5 space-y-0.5">
+                  {['head', 'torso', 'leftArm', 'rightArm', 'leftLeg', 'rightLeg'].map((layer) => (
+                    <div key={layer} className="text-[9px] font-mono text-[#a8a8b0] py-0.5 truncate">{layer}</div>
+                  ))}
                 </div>
               </div>
             </div>
           </div>
 
+          {/* Resize handle */}
+          <div className="bg-[rgba(255,255,255,0.08)] hover:bg-[#4da3ff] transition-colors cursor-col-resize" />
+
           {/* 3D Viewport */}
-          <div className="relative aspect-[4/3] bg-gradient-to-b from-[#0d1117] to-[#161b22] overflow-hidden">
+          <div className="relative bg-[#0d0d0f] overflow-hidden" style={{ minHeight: 280 }}>
             <ViewportGrid />
-            <Viewport3D />
+            <Viewport3D scale={sliderValues.headSize / 72} />
 
             {/* Floating controls popup */}
-            <div className="absolute top-3 right-3 w-[120px] rounded-lg border hairline border-white/10 bg-[#0d1117]/95 shadow-lg overflow-hidden backdrop-blur-sm">
-              <div className="px-2.5 py-1.5 border-b hairline border-white/10">
-                <span className="font-mono-label text-[9px] text-slate-400">TUNABLES</span>
+            <div className="absolute top-3 right-3 w-[130px] rounded-lg border border-[rgba(255,255,255,0.08)] bg-[#151517] shadow-[0_12px_32px_rgba(0,0,0,0.45)] overflow-hidden">
+              <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-[rgba(255,255,255,0.08)] bg-[#1a1a1d]">
+                <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.09em] text-[#a8a8b0]">Component figure</span>
               </div>
-              <div className="p-2 space-y-2">
+              <div className="p-2 space-y-2.5">
                 {[
-                  { label: "Height", value: 65 },
-                  { label: "Roughness", value: 35 },
-                  { label: "Scale", value: 80 },
-                ].map((slider) => (
-                  <div key={slider.label}>
-                    <div className="flex justify-between mb-0.5">
-                      <span className="text-[9px] text-slate-500">{slider.label}</span>
-                      <span className="text-[9px] text-slate-300">{slider.value}%</span>
+                  { key: 'headSize', label: 'Head size' },
+                  { key: 'armLength', label: 'Arm length' },
+                  { key: 'legLength', label: 'Leg length' },
+                  { key: 'roughness', label: 'Roughness' },
+                ].map((s) => (
+                  <div key={s.key}>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-[9px] text-[#74757d]">{s.label}</span>
+                      <span className="text-[9px] text-[#a8a8b0] font-mono tabular-nums">{(sliderValues[s.key as keyof typeof sliderValues] / 100).toFixed(2)}</span>
                     </div>
-                    <div className="h-1 rounded-full bg-white/10 overflow-hidden">
-                      <div className="h-full rounded-full bg-royal-blue" style={{ width: `${slider.value}%` }} />
+                    <div
+                      className="h-1.5 rounded-full bg-[rgba(255,255,255,0.06)] cursor-pointer relative group"
+                      onMouseDown={(e) => { setActiveSlider(s.key); handleSliderChange(s.key, e); }}
+                      onMouseMove={(e) => { if (activeSlider === s.key && e.buttons === 1) handleSliderChange(s.key, e); }}
+                      onMouseUp={() => setActiveSlider(null)}
+                      onMouseLeave={() => setActiveSlider(null)}
+                    >
+                      <div className="h-full rounded-full bg-[#4da3ff] transition-[width] duration-75" style={{ width: `${sliderValues[s.key as keyof typeof sliderValues]}%` }} />
+                      <div
+                        className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-white border-2 border-[#4da3ff] shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                        style={{ left: `calc(${sliderValues[s.key as keyof typeof sliderValues]}% - 5px)` }}
+                      />
                     </div>
                   </div>
                 ))}
-                <button className="w-full mt-1 flex items-center justify-center gap-1 rounded border border-dashed border-white/20 py-0.5 text-[8px] text-slate-500 hover:text-slate-300 transition-colors">
-                  + Add slider
+                <button className="w-full mt-0.5 flex items-center justify-center gap-1 rounded-md border border-dashed border-[rgba(255,255,255,0.14)] py-1 text-[9px] text-[#74757d] hover:border-[#a8a8b0] hover:text-[#a8a8b0] transition-colors">
+                  + Add custom slider
                 </button>
               </div>
             </div>
@@ -222,45 +255,43 @@ function ViewportGrid() {
   );
 }
 
-function Viewport3D() {
+function Viewport3D({ scale = 1 }: { scale?: number }) {
+  const headScale = 0.8 + scale * 0.4;
   return (
     <div className="absolute inset-0 flex items-center justify-center">
       <svg viewBox="0 0 300 240" className="w-[72%] h-auto" fill="none">
         {/* Ground circle */}
-        <ellipse cx="150" cy="195" rx="100" ry="18" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.08)" strokeWidth="0.5" />
+        <ellipse cx="150" cy="200" rx="80" ry="12" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.06)" strokeWidth="0.5" />
 
-        {/* Main body - box torso */}
-        <g transform="translate(150, 120)">
-          {/* Torso front face */}
-          <path d="M-20,-30 L20,-30 L20,20 L-20,20 Z" fill="#3B82F6" opacity="0.6" stroke="#60A5FA" strokeWidth="0.6" />
-          {/* Torso right face */}
-          <path d="M20,-30 L32,-38 L32,12 L20,20 Z" fill="#2563EB" opacity="0.5" stroke="#60A5FA" strokeWidth="0.4" />
-          {/* Torso top face */}
-          <path d="M-20,-30 L-8,-38 L32,-38 L20,-30 Z" fill="#93C5FD" opacity="0.3" stroke="#60A5FA" strokeWidth="0.4" />
+        {/* Torso */}
+        <g transform="translate(150, 125)">
+          <path d="M-18,-28 L18,-28 L18,18 L-18,18 Z" fill="#4da3ff" opacity="0.55" stroke="#74b8ff" strokeWidth="0.7" />
+          <path d="M18,-28 L28,-34 L28,12 L18,18 Z" fill="#3b82f6" opacity="0.4" stroke="#74b8ff" strokeWidth="0.4" />
+          <path d="M-18,-28 L-8,-34 L28,-34 L18,-28 Z" fill="#93c5fd" opacity="0.2" stroke="#74b8ff" strokeWidth="0.4" />
         </g>
 
-        {/* Head - sphere */}
-        <circle cx="156" cy="68" r="14" fill="#3B82F6" opacity="0.5" stroke="#60A5FA" strokeWidth="0.6" />
-        <ellipse cx="152" cy="65" rx="6" ry="7" fill="#93C5FD" opacity="0.15" />
+        {/* Head - responsive to slider */}
+        <g style={{ transform: `translate(154px, 72px) scale(${headScale})`, transformOrigin: '0 0', transition: 'transform 0.15s ease-out' }}>
+          <circle cx="0" cy="0" r="13" fill="#4da3ff" opacity="0.5" stroke="#74b8ff" strokeWidth="0.7" />
+          <ellipse cx="-3" cy="-3" rx="5" ry="6" fill="#93c5fd" opacity="0.12" />
+        </g>
 
         {/* Left arm */}
-        <rect x="112" y="88" width="10" height="42" rx="3" fill="#3B82F6" opacity="0.45" stroke="#60A5FA" strokeWidth="0.5" transform="rotate(-5, 117, 109)" />
-
+        <rect x="115" y="95" width="9" height="38" rx="3" fill="#4da3ff" opacity="0.4" stroke="#74b8ff" strokeWidth="0.5" transform="rotate(-4, 119, 114)" />
         {/* Right arm */}
-        <rect x="178" y="86" width="10" height="42" rx="3" fill="#2563EB" opacity="0.45" stroke="#60A5FA" strokeWidth="0.5" transform="rotate(5, 183, 107)" />
+        <rect x="176" y="93" width="9" height="38" rx="3" fill="#3b82f6" opacity="0.4" stroke="#74b8ff" strokeWidth="0.5" transform="rotate(4, 180, 112)" />
 
         {/* Left leg */}
-        <rect x="133" y="142" width="12" height="44" rx="3" fill="#3B82F6" opacity="0.4" stroke="#60A5FA" strokeWidth="0.5" />
-
+        <rect x="135" y="144" width="11" height="42" rx="3" fill="#4da3ff" opacity="0.35" stroke="#74b8ff" strokeWidth="0.5" />
         {/* Right leg */}
-        <rect x="157" y="142" width="12" height="44" rx="3" fill="#2563EB" opacity="0.4" stroke="#60A5FA" strokeWidth="0.5" />
+        <rect x="155" y="144" width="11" height="42" rx="3" fill="#3b82f6" opacity="0.35" stroke="#74b8ff" strokeWidth="0.5" />
 
-        {/* Key light glow */}
-        <circle cx="220" cy="50" r="40" fill="url(#lightGlow)" opacity="0.3" />
+        {/* Ambient light glow */}
+        <circle cx="210" cy="55" r="35" fill="url(#mockLightGlow)" opacity="0.25" />
         <defs>
-          <radialGradient id="lightGlow">
-            <stop offset="0%" stopColor="#93C5FD" stopOpacity="0.4" />
-            <stop offset="100%" stopColor="#93C5FD" stopOpacity="0" />
+          <radialGradient id="mockLightGlow">
+            <stop offset="0%" stopColor="#4da3ff" stopOpacity="0.3" />
+            <stop offset="100%" stopColor="#4da3ff" stopOpacity="0" />
           </radialGradient>
         </defs>
       </svg>
