@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Play, ArrowUpRight, Box, Layers, Clapperboard, Settings2, Download, Sparkles } from "lucide-react";
+import { Play, ArrowUpRight, Box, Layers, Download, Sparkles } from "lucide-react";
 
 const PROMPT_TEXT = "A windswept dune field at dusk, low poly terrain, sharp shadows";
 
@@ -106,106 +106,98 @@ function ProductMockup({ typed }: { typed: string }) {
     <div className="relative">
       {/* Window chrome */}
       <div className="rounded-xl border hairline border-white/10 bg-[#0d1117] shadow-[0_1px_2px_rgba(0,0,0,0.2),0_24px_60px_-24px_rgba(0,0,0,0.5)] overflow-hidden">
-        {/* Title bar */}
-        <div className="flex items-center justify-between border-b hairline border-white/10 px-4 py-2.5">
-          <div className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-white/20" />
-            <span className="h-2.5 w-2.5 rounded-full bg-white/20" />
-            <span className="h-2.5 w-2.5 rounded-full bg-white/20" />
+        {/* Top nav bar */}
+        <div className="flex items-center justify-between border-b hairline border-white/10 px-4 py-2">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-white/20" />
+              <span className="h-2.5 w-2.5 rounded-full bg-white/20" />
+              <span className="h-2.5 w-2.5 rounded-full bg-white/20" />
+            </div>
+            <span className="font-mono-label text-white/80 text-[10px] font-semibold tracking-wider">ZENDAI</span>
           </div>
-          <span className="font-mono-label text-slate-400">zendai / scene-01.zdai</span>
-          <div className="flex items-center gap-2">
-            <button className="flex items-center gap-1.5 rounded-md bg-royal-blue px-2.5 py-1 text-white font-mono-label">
-              <Download className="h-3 w-3" /> Export
-            </button>
+          <div className="flex items-center gap-4 font-mono-label text-[10px]">
+            <span className="text-royal-blue border-b border-royal-blue pb-0.5">Model</span>
+            <span className="text-slate-500">Video</span>
+            <span className="text-slate-500">Export</span>
           </div>
+          <button className="flex items-center gap-1.5 rounded-md bg-royal-blue px-2 py-1 text-white font-mono-label text-[10px]">
+            <Download className="h-2.5 w-2.5" /> Export
+          </button>
         </div>
 
-        {/* Prompt input */}
-        <div className="border-b hairline border-white/10 px-4 py-3">
-          <div className="flex items-center gap-2.5">
-            <Sparkles className="h-4 w-4 text-royal-blue shrink-0" />
-            <div className="flex-1 text-sm text-slate-200">
-              <span>{typed}</span>
-              <span className="inline-block w-px h-4 bg-white align-middle ml-0.5 animate-pulse" />
+        {/* Main body: sidebar + viewport */}
+        <div className="grid grid-cols-[160px_1fr]">
+          {/* Left sidebar */}
+          <div className="border-r hairline border-white/10 flex flex-col">
+            {/* Chat area */}
+            <div className="p-2.5 border-b hairline border-white/10">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Sparkles className="h-3 w-3 text-royal-blue shrink-0" />
+                <span className="font-mono-label text-slate-500 text-[9px]">PROMPT</span>
+              </div>
+              <div className="rounded-md border hairline border-white/10 bg-white/5 px-2 py-1.5">
+                <div className="text-[10px] text-slate-300 leading-tight">
+                  <span>{typed.slice(0, 40)}</span>
+                  <span className="inline-block w-px h-3 bg-white align-middle ml-0.5 animate-pulse" />
+                </div>
+              </div>
+              <button className="mt-2 w-full rounded-md bg-royal-blue/90 px-2 py-1 font-mono-label text-[9px] text-white">
+                Generate
+              </button>
             </div>
-            <button className="rounded-md border hairline border-white/20 px-2.5 py-1 font-mono-label text-slate-400 hover:border-white/40 hover:text-white transition-colors">
-              Generate
-            </button>
-          </div>
-        </div>
 
-        {/* Main body: viewport + properties */}
-        <div className="grid grid-cols-1 md:grid-cols-[1fr_180px]">
-          {/* 3D Viewport */}
-          <div className="relative aspect-[4/3] bg-gradient-to-b from-[#0d1117] to-[#161b22] border-b md:border-b-0 md:border-r hairline border-white/10 overflow-hidden">
-            <ViewportGrid />
-            <Viewport3D />
-            <div className="absolute top-3 left-3 font-mono-label text-slate-500">Viewport · 3D</div>
-            <div className="absolute bottom-3 left-3 flex items-center gap-3 font-mono-label text-slate-500">
-              <span>X 0.00</span>
-              <span>Y 0.00</span>
-              <span>Z 0.00</span>
-            </div>
-          </div>
-
-          {/* Properties panel */}
-          <div className="p-3.5 space-y-4">
-            <div>
-              <div className="font-mono-label text-slate-500 mb-2">Properties</div>
-              <div className="space-y-1.5">
-                {[
-                  ["Mesh", "Terrain"],
-                  ["Verts", "12,480"],
-                  ["Material", "Clay"],
-                ].map(([k, v]) => (
-                  <div key={k} className="flex justify-between text-xs">
-                    <span className="text-slate-500">{k}</span>
-                    <span className="text-slate-200 font-medium">{v}</span>
-                  </div>
-                ))}
+            {/* Models & Layers */}
+            <div className="p-2.5 flex-1">
+              <div className="font-mono-label text-slate-500 text-[9px] mb-2">MODELS & LAYERS</div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-1.5 rounded-md bg-royal-blue/20 border hairline border-royal-blue/40 px-2 py-1">
+                  <Box className="h-3 w-3 text-royal-blue" />
+                  <span className="text-[10px] text-white truncate">Dune terrain</span>
+                </div>
+                <div className="flex items-center gap-1.5 rounded-md px-2 py-1 border hairline border-white/5">
+                  <Layers className="h-3 w-3 text-slate-600" />
+                  <span className="text-[10px] text-slate-400 truncate">Focal pyramid</span>
+                </div>
+                <div className="flex items-center gap-1.5 rounded-md px-2 py-1 border hairline border-white/5">
+                  <Layers className="h-3 w-3 text-slate-600" />
+                  <span className="text-[10px] text-slate-400 truncate">Ground plane</span>
+                </div>
               </div>
             </div>
-            <div className="h-px bg-white/10" />
-            <div>
-              <div className="font-mono-label text-slate-500 mb-2">Transform</div>
-              {["Pos", "Rot", "Scl"].map((label) => (
-                <div key={label} className="flex items-center gap-2 mb-1.5">
-                  <span className="w-7 font-mono-label text-slate-500">{label}</span>
-                  <div className="flex-1 grid grid-cols-3 gap-1">
-                    {[0, 0, 0].map((_, i) => (
-                      <div key={i} className="h-5 rounded-sm border hairline border-white/10 bg-white/5" />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
-        </div>
 
-        {/* Timeline */}
-        <div className="border-t hairline border-white/10 px-4 py-3">
-          <div className="flex items-center gap-2 mb-2">
-            <Clapperboard className="h-3.5 w-3.5 text-slate-500" />
-            <span className="font-mono-label text-slate-500">Timeline</span>
-            <span className="ml-auto font-mono-label text-slate-500">00:00 / 00:12</span>
-          </div>
-          <div className="space-y-1.5">
-            {[
-              { w: "w-3/4", icon: Box, label: "Scene" },
-              { w: "w-1/2", icon: Layers, label: "Camera" },
-              { w: "w-2/3", icon: Settings2, label: "Lights" },
-            ].map((track, i) => {
-              const Icon = track.icon;
-              return (
-                <div key={i} className="flex items-center gap-2">
-                  <Icon className="h-3 w-3 text-slate-600" />
-                  <div className="flex-1 h-5 rounded-sm bg-white/5 border hairline border-white/10 relative overflow-hidden">
-                    <div className={`absolute inset-y-0 left-0 ${track.w} bg-royal-blue/60 rounded-sm`} />
+          {/* 3D Viewport */}
+          <div className="relative aspect-[4/3] bg-gradient-to-b from-[#0d1117] to-[#161b22] overflow-hidden">
+            <ViewportGrid />
+            <Viewport3D />
+
+            {/* Floating controls popup */}
+            <div className="absolute top-3 right-3 w-[120px] rounded-lg border hairline border-white/10 bg-[#0d1117]/95 shadow-lg overflow-hidden backdrop-blur-sm">
+              <div className="px-2.5 py-1.5 border-b hairline border-white/10">
+                <span className="font-mono-label text-[9px] text-slate-400">TUNABLES</span>
+              </div>
+              <div className="p-2 space-y-2">
+                {[
+                  { label: "Height", value: 65 },
+                  { label: "Roughness", value: 35 },
+                  { label: "Scale", value: 80 },
+                ].map((slider) => (
+                  <div key={slider.label}>
+                    <div className="flex justify-between mb-0.5">
+                      <span className="text-[9px] text-slate-500">{slider.label}</span>
+                      <span className="text-[9px] text-slate-300">{slider.value}%</span>
+                    </div>
+                    <div className="h-1 rounded-full bg-white/10 overflow-hidden">
+                      <div className="h-full rounded-full bg-royal-blue" style={{ width: `${slider.value}%` }} />
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                ))}
+                <button className="w-full mt-1 flex items-center justify-center gap-1 rounded border border-dashed border-white/20 py-0.5 text-[8px] text-slate-500 hover:text-slate-300 transition-colors">
+                  + Add slider
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -232,35 +224,45 @@ function ViewportGrid() {
 
 function Viewport3D() {
   return (
-    <div className="absolute inset-0 flex items-end justify-center pb-10">
-      <svg viewBox="0 0 400 220" className="w-[78%] h-auto" fill="none">
-        {/* Wireframe dune landscape */}
-        {[0, 1, 2, 3, 4, 5].map((row) => {
-          const y = 30 + row * 28;
-          const depth = row / 5;
-          return (
-            <path
-              key={row}
-              d={`M 20 ${y} C 80 ${y - 18 - depth * 6}, 140 ${y + 14 - depth * 10}, 200 ${y - 6 - depth * 8} S 320 ${y - 22 - depth * 6}, 380 ${y - 2 - depth * 4}`}
-              stroke="rgba(255,255,255,0.2)"
-              strokeWidth="0.6"
-            />
-          );
-        })}
-        {/* Vertical connectors */}
-        {[60, 120, 180, 240, 300, 360].map((x, i) => (
-          <path
-            key={x}
-            d={`M ${x} ${28 + i * 0} C ${x + 4} 60, ${x - 6} 110, ${x + 2} 170`}
-            stroke="rgba(255,255,255,0.1)"
-            strokeWidth="0.5"
-          />
-        ))}
-        {/* Focal object */}
-        <g transform="translate(195, 96)">
-          <polygon points="0,-22 24,8 -24,8" stroke="rgba(255,255,255,0.5)" strokeWidth="0.8" fill="rgba(255,255,255,0.03)" />
-          <polygon points="0,-22 24,8 -24,8" stroke="#3B82F6" strokeWidth="0.4" fill="none" transform="translate(2,2)" opacity="0.6" />
+    <div className="absolute inset-0 flex items-center justify-center">
+      <svg viewBox="0 0 300 240" className="w-[72%] h-auto" fill="none">
+        {/* Ground circle */}
+        <ellipse cx="150" cy="195" rx="100" ry="18" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.08)" strokeWidth="0.5" />
+
+        {/* Main body - box torso */}
+        <g transform="translate(150, 120)">
+          {/* Torso front face */}
+          <path d="M-20,-30 L20,-30 L20,20 L-20,20 Z" fill="#3B82F6" opacity="0.6" stroke="#60A5FA" strokeWidth="0.6" />
+          {/* Torso right face */}
+          <path d="M20,-30 L32,-38 L32,12 L20,20 Z" fill="#2563EB" opacity="0.5" stroke="#60A5FA" strokeWidth="0.4" />
+          {/* Torso top face */}
+          <path d="M-20,-30 L-8,-38 L32,-38 L20,-30 Z" fill="#93C5FD" opacity="0.3" stroke="#60A5FA" strokeWidth="0.4" />
         </g>
+
+        {/* Head - sphere */}
+        <circle cx="156" cy="68" r="14" fill="#3B82F6" opacity="0.5" stroke="#60A5FA" strokeWidth="0.6" />
+        <ellipse cx="152" cy="65" rx="6" ry="7" fill="#93C5FD" opacity="0.15" />
+
+        {/* Left arm */}
+        <rect x="112" y="88" width="10" height="42" rx="3" fill="#3B82F6" opacity="0.45" stroke="#60A5FA" strokeWidth="0.5" transform="rotate(-5, 117, 109)" />
+
+        {/* Right arm */}
+        <rect x="178" y="86" width="10" height="42" rx="3" fill="#2563EB" opacity="0.45" stroke="#60A5FA" strokeWidth="0.5" transform="rotate(5, 183, 107)" />
+
+        {/* Left leg */}
+        <rect x="133" y="142" width="12" height="44" rx="3" fill="#3B82F6" opacity="0.4" stroke="#60A5FA" strokeWidth="0.5" />
+
+        {/* Right leg */}
+        <rect x="157" y="142" width="12" height="44" rx="3" fill="#2563EB" opacity="0.4" stroke="#60A5FA" strokeWidth="0.5" />
+
+        {/* Key light glow */}
+        <circle cx="220" cy="50" r="40" fill="url(#lightGlow)" opacity="0.3" />
+        <defs>
+          <radialGradient id="lightGlow">
+            <stop offset="0%" stopColor="#93C5FD" stopOpacity="0.4" />
+            <stop offset="100%" stopColor="#93C5FD" stopOpacity="0" />
+          </radialGradient>
+        </defs>
       </svg>
     </div>
   );
