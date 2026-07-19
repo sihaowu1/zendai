@@ -24,7 +24,7 @@ Zendai turns natural language prompts (or reference photos) into fully editable 
 Describe what you want and get a live 3D scene back instantly.
 
 - **Prompt to 3D**: Natural language descriptions become component-based Three.js scenes with named parts.
-- **Image to 3D**: Upload a reference photo and the img2threejs pipeline decomposes it into primitives, extracts PBR materials, and reconstructs it as editable code.
+- **Image to 3D**: Upload a reference photo and the pipeline decomposes it into primitives, extracts PBR materials, and reconstructs it as editable code.
 - **Tunable Sliders**: Every model exposes per-part size, color, and material parameters as real-time sliders.
 - **Code Editor**: Full CodeMirror editor with syntax highlighting. Edit the generated code directly and see changes live.
 - **Iterative Refinement**: Follow-up prompts modify the existing model without rebuilding from scratch.
@@ -81,7 +81,6 @@ Prompt
 
 ```
 Reference photo
-  -> img2threejs skill (structured decomposition)
   -> Component inventory + material extraction
   -> Proportion mapping + primitive assembly
   -> Validated Three.js scene module
@@ -133,7 +132,6 @@ npm run dev
 │       └── utils/       Logging, tracing
 ├── shared/              Types, validation, templates, tunables parser
 ├── skills/              AI skill definitions (system prompts)
-│   ├── img2threejs/     Image-to-3D reconstruction
 │   ├── threejs-modelling/   Text-to-3D modelling
 │   ├── threejs-animation/   Animation generation
 │   └── procedural-patterns/ Geometry and material recipes
