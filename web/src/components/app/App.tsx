@@ -96,6 +96,7 @@ export function App() {
             element={
               <ExportScreen
                 models={project.models}
+                activeModelId={project.activeModelId}
                 code={project.code}
                 modelName={project.models.find((m) => m.id === project.activeModelId)?.name ?? 'Model'}
                 busy={project.busy}

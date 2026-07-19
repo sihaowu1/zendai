@@ -142,11 +142,18 @@ export function MarketplaceScreen() {
                     </button>
                   </div>
                 )}
-                {/* Live 3D preview */}
+                {/* Live 3D preview — prefer animated module when published */}
                 <div className="pointer-events-none h-[160px] w-full overflow-hidden rounded-md bg-black">
-                  <Viewport code={item.code} interactive={false} />
+                  <Viewport code={item.animationCode ?? item.code} interactive={false} />
                 </div>
-                <h3 className="m-0 text-[18px] font-semibold text-text">{item.title}</h3>
+                <div className="flex items-start gap-2">
+                  <h3 className="m-0 flex-1 text-[18px] font-semibold text-text">{item.title}</h3>
+                  {item.animationCode && (
+                    <span className="shrink-0 rounded border border-border px-1.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-text-faint">
+                      Animated
+                    </span>
+                  )}
+                </div>
                 <p className="m-0 flex-1 text-[14px] text-text-dim">{item.description || 'No description'}</p>
                 <div className="flex items-center gap-2 text-[13px] text-text-dim">
                   {item.creator.picture && (

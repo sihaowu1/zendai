@@ -13,11 +13,38 @@ const requireMongo: RequestHandler = (_req, res, next) => {
   next();
 };
 
+function toSummary(item: {
+  _id: unknown;
+  title: string;
+  description: string;
+  code: string;
+  animationCode?: string;
+  animationName?: string;
+  creator: { name: string; picture?: string; sub: string };
+  publishedAt: Date;
+}): MarketplaceItemSummary {
+  return {
+    id: String(item._id),
+    title: item.title,
+    description: item.description,
+    code: item.code,
+    ...(item.animationCode
+      ? {
+          animationCode: item.animationCode,
+          animationName: item.animationName || undefined,
+        }
+      : {}),
+    creator: { name: item.creator.name, picture: item.creator.picture },
+    creatorSub: item.creator.sub,
+    publishedAt: item.publishedAt.toISOString(),
+  };
+}
+
 export const marketplaceRouter = Router();
 
 // Publish a new item (authenticated)
 marketplaceRouter.post('/marketplace/publish', requireAuth, requireMongo, (async (req, res) => {
-  const { title, description, code } = req.body as PublishRequest;
+  const { title, description, code, animationCode, animationName } = req.body as PublishRequest;
   if (!title || !code) {
     res.status(400).json({ error: 'title and code are required.' });
     return;
@@ -31,14 +58,25 @@ marketplaceRouter.post('/marketplace/publish', requireAuth, requireMongo, (async
     picture: auth.picture as string | undefined,
   };
 
-  const item = await MarketplaceItem.create({
-    title: title.slice(0, 120),
-    description: (description ?? '').slice(0, 1000),
-    code,
-    creator,
-  });
-
-  res.status(201).json({ id: item._id });
+  const trimmedAnim = typeof animationCode === 'string' ? animationCode.trim() : '';
+  try {
+    const item = await MarketplaceItem.create({
+      title: title.slice(0, 120),
+      description: (description ?? '').slice(0, 1000),
+      code,
+      ...(trimmedAnim
+        ? {
+            animationCode: trimmedAnim,
+            animationName: (animationName ?? 'Animation').slice(0, 120),
+          }
+        : {}),
+      creator,
+    });
+    res.status(201).json({ id: item._id });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Publish failed.';
+    res.status(400).json({ error: message });
+  }
 }) as RequestHandler);
 
 // List published items (public, paginated; ?mine=1 filters to own items)
@@ -65,15 +103,7 @@ marketplaceRouter.get('/marketplace', requireMongo, (async (req, res) => {
 
   const total = await MarketplaceItem.countDocuments(filter);
 
-  const summaries: MarketplaceItemSummary[] = items.map((item) => ({
-    id: String(item._id),
-    title: item.title,
-    description: item.description,
-    code: item.code,
-    creator: { name: item.creator.name, picture: item.creator.picture },
-    creatorSub: item.creator.sub,
-    publishedAt: item.publishedAt.toISOString(),
-  }));
+  const summaries: MarketplaceItemSummary[] = items.map(toSummary);
 
   res.json({ items: summaries, total, page, pages: Math.ceil(total / limit) });
 }) as RequestHandler);
@@ -86,16 +116,7 @@ marketplaceRouter.get('/marketplace/:id', requireMongo, (async (req, res) => {
     return;
   }
 
-  const detail: MarketplaceItemDetail = {
-    id: String(item._id),
-    title: item.title,
-    description: item.description,
-    code: item.code,
-    creator: { name: item.creator.name, picture: item.creator.picture },
-    creatorSub: item.creator.sub,
-    publishedAt: item.publishedAt.toISOString(),
-  };
-
+  const detail: MarketplaceItemDetail = toSummary(item);
   res.json(detail);
 }) as RequestHandler);
 
@@ -111,15 +132,7 @@ marketplaceRouter.patch('/marketplace/:id', requireAuth, requireMongo, (async (r
   if (description !== undefined) item.description = description.slice(0, 1000);
   await item.save();
 
-  res.json({
-    id: String(item._id),
-    title: item.title,
-    description: item.description,
-    code: item.code,
-    creator: { name: item.creator.name, picture: item.creator.picture },
-    creatorSub: item.creator.sub,
-    publishedAt: item.publishedAt.toISOString(),
-  });
+  res.json(toSummary(item));
 }) as RequestHandler);
 
 // Delete an item (authenticated, owner only)

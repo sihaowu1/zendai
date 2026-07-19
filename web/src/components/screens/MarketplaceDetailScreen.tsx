@@ -8,11 +8,20 @@ import { exportSceneAs, type ModelFormat } from '../../viewport/exportScene';
 import { Button, IconButton } from '../ui/Button';
 import { PANEL_HEADER } from '../ui/Panel';
 
+type CodeView = 'original' | 'animation';
+
 /** Build an LLM-ready prompt that bundles the scene code with integration instructions. */
-function buildCopyPrompt(item: MarketplaceItemDetail): string {
+function buildCopyPrompt(item: MarketplaceItemDetail, view: CodeView): string {
+  const hasAnimation = Boolean(item.animationCode);
+  const isAnim = view === 'animation' && hasAnimation;
+  const moduleCode = isAnim ? item.animationCode! : item.code;
+  const sceneLabel = isAnim
+    ? `${item.title} — ${item.animationName ?? 'Animation'}`
+    : item.title;
+
   return `You are integrating a Zendai 3D scene module into a web project.
 
-## Scene: ${item.title}
+## Scene: ${sceneLabel}
 
 ${item.description}
 
@@ -25,7 +34,7 @@ The module exports:
 - \`buildScene({ THREE, scene, params })\` — creates the geometry and adds it to the scene. Returns a named object map of parts.
 - \`updateScene({ THREE, scene, objects, params, time })\` — called every frame. Must be pure (no Math.random, no accumulated state).
 - \`CAMERA\` (optional) — \`{ position: [x,y,z], lookAt: [x,y,z], fov: number }\`.
-
+${isAnim ? '- `ANIMATION` — clip metadata and keyframed part tracks driven by `time`.\n' : ''}
 ## Integration steps
 
 1. Add Three.js to the project (\`npm install three\` or CDN \`<script>\`).
@@ -35,12 +44,20 @@ The module exports:
 5. In the render loop, call \`updateScene({ THREE, scene, objects, params: module.PARAMS, time })\` every frame, where \`time\` is seconds since start.
 6. To make values adjustable, read the \`@tunable\` annotations from \`PARAMS\` and bind them to UI controls (sliders, color pickers, switches).
 
-## Scene module code
+## Scene module code (${isAnim ? 'animated' : 'original'})
 
 \`\`\`javascript
-${item.code}
+${moduleCode}
 \`\`\`
+${
+  hasAnimation && !isAnim
+    ? `
+## Animated variant
 
+This listing also includes an animated module (${item.animationName ?? 'Animation'}). Switch to the Animation code tab on the marketplace listing to copy that version.
+`
+    : ''
+}
 ## Notes
 - The module must stay pure — no side effects, no randomness, no Date calls.
 - Remotion can render this to MP4 if you pass deterministic \`time\` values per frame.
@@ -58,6 +75,7 @@ export function MarketplaceDetailScreen() {
   const [copied, setCopied] = useState<string | null>(null);
   const [exportBusy, setExportBusy] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [codeView, setCodeView] = useState<CodeView>('original');
 
   // Inline edit state
   const [editing, setEditing] = useState(false);
@@ -66,12 +84,18 @@ export function MarketplaceDetailScreen() {
   const [editBusy, setEditBusy] = useState(false);
 
   const isOwned = isAuthenticated && user?.sub && item?.creatorSub === user.sub;
+  const hasAnimation = Boolean(item?.animationCode);
+  const activeCode =
+    codeView === 'animation' && item?.animationCode ? item.animationCode : (item?.code ?? '');
 
   useEffect(() => {
     if (!id) return;
     setLoading(true);
     getMarketplaceItem(id)
-      .then(setItem)
+      .then((next) => {
+        setItem(next);
+        setCodeView(next.animationCode ? 'animation' : 'original');
+      })
       .catch((err) => setError((err as Error).message))
       .finally(() => setLoading(false));
   }, [id]);
@@ -83,20 +107,21 @@ export function MarketplaceDetailScreen() {
 
   const copyCode = useCallback(() => {
     if (!item) return;
-    navigator.clipboard.writeText(item.code);
+    navigator.clipboard.writeText(activeCode);
     flash('Code');
-  }, [item, flash]);
+  }, [item, activeCode, flash]);
 
   const copyPrompt = useCallback(() => {
     if (!item) return;
-    navigator.clipboard.writeText(buildCopyPrompt(item));
+    navigator.clipboard.writeText(buildCopyPrompt(item, codeView));
     flash('Prompt');
-  }, [item, flash]);
+  }, [item, codeView, flash]);
 
   const handleExportModel = useCallback(async (format: ModelFormat) => {
     if (!item) return;
     setExportBusy(true);
     try {
+      // Mesh export uses the static original — animation doesn't change geometry.
       await exportSceneAs(item.code, format);
     } catch (err) {
       setError((err as Error).message);
@@ -158,7 +183,7 @@ export function MarketplaceDetailScreen() {
           </IconButton>
         </div>
         <div className="flex-1 min-h-0">
-          <Viewport code={item.code} showToolbar />
+          <Viewport code={activeCode} showToolbar />
         </div>
       </div>
     );
@@ -217,6 +242,11 @@ export function MarketplaceDetailScreen() {
                   )}
                 </div>
                 <p className="m-0 text-[15px] text-text-dim">{item.description}</p>
+                {hasAnimation && (
+                  <p className="m-0 text-[13px] text-text-faint">
+                    Includes animation: {item.animationName ?? 'Animation'}
+                  </p>
+                )}
               </>
             )}
             <div className="flex items-center gap-2 text-[13px] text-text-dim">
@@ -238,7 +268,9 @@ export function MarketplaceDetailScreen() {
               </Button>
             </div>
             <p className="m-0 text-[12px] leading-normal text-text-faint">
-              Copy Prompt gives your AI assistant (Cursor, Claude Code, Copilot) the full scene code plus integration instructions. Copy Code gives the raw module.
+              Copy uses the selected code tab below
+              {hasAnimation ? ' (Original or Animation)' : ''}
+              . Copy Prompt adds integration instructions for your AI assistant.
             </p>
           </div>
 
@@ -265,7 +297,7 @@ export function MarketplaceDetailScreen() {
 
         {/* Right: viewport with fullscreen button */}
         <div className="relative min-h-[280px] overflow-hidden rounded-lg bg-black">
-          <Viewport code={item.code} />
+          <Viewport code={activeCode} />
           <button
             type="button"
             onClick={() => setExpanded(true)}
@@ -279,13 +311,36 @@ export function MarketplaceDetailScreen() {
         </div>
       </div>
 
-      {/* Code preview */}
+      {/* Code preview — original and optional animation */}
       <div className="flex flex-col">
-        <div className="border border-border border-b-0 bg-bg-raised px-4 py-2 text-[14px] font-semibold text-text">
-          Three.js
+        <div className="flex items-center gap-1 border border-border border-b-0 bg-bg-raised px-2 py-1.5">
+          <button
+            type="button"
+            onClick={() => setCodeView('original')}
+            className={`cursor-pointer rounded-md px-3 py-1.5 text-[13px] font-semibold transition-colors ${
+              codeView === 'original'
+                ? 'bg-bg-panel text-text'
+                : 'bg-transparent text-text-dim hover:text-text'
+            }`}
+          >
+            Original
+          </button>
+          {hasAnimation && (
+            <button
+              type="button"
+              onClick={() => setCodeView('animation')}
+              className={`cursor-pointer rounded-md px-3 py-1.5 text-[13px] font-semibold transition-colors ${
+                codeView === 'animation'
+                  ? 'bg-bg-panel text-text'
+                  : 'bg-transparent text-text-dim hover:text-text'
+              }`}
+            >
+              Animation{item.animationName ? ` — ${item.animationName}` : ''}
+            </button>
+          )}
         </div>
         <pre className="m-0 max-h-[400px] overflow-auto rounded-b-lg border border-border bg-bg-raised p-4 text-[13px] leading-relaxed">
-          {item.code}
+          {activeCode}
         </pre>
       </div>
     </main>

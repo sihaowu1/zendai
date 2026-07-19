@@ -202,7 +202,12 @@ export interface MarketplaceItemSummary {
   id: string;
   title: string;
   description: string;
+  /** Original (static) scene module — no ANIMATION block. */
   code: string;
+  /** Optional animated module copy (includes ANIMATION). */
+  animationCode?: string;
+  /** Display name of the published animation, when present. */
+  animationName?: string;
   creator: { name: string; picture?: string };
   creatorSub?: string;
   publishedAt: string;
@@ -215,5 +220,10 @@ export interface MarketplaceItemDetail extends MarketplaceItemSummary {}
 export interface PublishRequest {
   title: string;
   description: string;
+  /** Original (static) scene module. */
   code: string;
+  /** Optional animated module to publish alongside the original. */
+  animationCode?: string;
+  /** Display name for the optional animation. */
+  animationName?: string;
 }

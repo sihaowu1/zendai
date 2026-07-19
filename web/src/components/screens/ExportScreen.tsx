@@ -23,6 +23,8 @@ import { CODE_EXPORT_FORMATS } from '../../api/client';
 export interface ExportScreenProps {
   /** All models to push under `models/` on GitHub commit/create. */
   models: SceneModel[];
+  /** Currently selected model — used as the marketplace publish default. */
+  activeModelId: string;
   /** Active model scene module source. */
   code: string;
   /** Display name used as export title. */
@@ -115,6 +117,7 @@ const FORMAT_OPTIONS: { value: CodeExportFormat; label: string }[] = [
  */
 export function ExportScreen({
   models,
+  activeModelId,
   code,
   modelName,
   busy,
@@ -567,11 +570,7 @@ export function ExportScreen({
               )
             }
           >
-            {code ? (
-              <PublishForm code={code} />
-            ) : (
-              <p className="m-0 text-[13px] leading-normal text-text-faint">Generate a scene first to publish it.</p>
-            )}
+            <PublishForm models={models} defaultModelId={activeModelId} />
           </RequireAuth>
         </section>
       </div>
